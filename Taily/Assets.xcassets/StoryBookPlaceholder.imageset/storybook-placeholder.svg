@@ -1,0 +1,68 @@
+<svg width="200" height="150" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="150" fill="#f8f9ff"/>
+  
+  <!-- Book Base -->
+  <path d="M40 30 L160 25 L165 35 L165 125 L160 135 L40 140 L35 130 L35 40 Z" 
+        fill="#4a90e2" stroke="#357abd" stroke-width="1"/>
+  
+  <!-- Book Pages -->
+  <path d="M45 35 L155 30 L160 40 L160 120 L155 130 L45 135 L40 125 L40 45 Z" 
+        fill="#ffffff" stroke="#e0e0e0" stroke-width="0.5"/>
+  
+  <!-- Page Lines -->
+  <line x1="50" y1="50" x2="145" y2="48" stroke="#f0f0f0" stroke-width="1"/>
+  <line x1="50" y1="60" x2="145" y2="58" stroke="#f0f0f0" stroke-width="1"/>
+  <line x1="50" y1="70" x2="145" y2="68" stroke="#f0f0f0" stroke-width="1"/>
+  <line x1="50" y1="80" x2="145" y2="78" stroke="#f0f0f0" stroke-width="1"/>
+  <line x1="50" y1="90" x2="145" y2="88" stroke="#f0f0f0" stroke-width="1"/>
+  
+  <!-- Moon and Stars (left page) -->
+  <circle cx="70" cy="60" r="8" fill="#ffd700" stroke="#e6c200" stroke-width="1"/>
+  <!-- Moon face -->
+  <circle cx="68" cy="57" r="1" fill="#e6c200"/>
+  <circle cx="72" cy="57" r="1" fill="#e6c200"/>
+  <path d="M66 62 Q70 65 74 62" stroke="#e6c200" stroke-width="1" fill="none"/>
+  
+  <!-- Stars -->
+  <polygon points="85,45 87,50 92,50 88,53 90,58 85,55 80,58 82,53 78,50 83,50" 
+           fill="#ffd700"/>
+  <polygon points="95,65 96,68 99,68 97,70 98,73 95,71 92,73 93,70 91,68 94,68" 
+           fill="#ffd700"/>
+  <polygon points="60,75 61,77 63,77 62,78 62,80 60,79 58,80 59,78 57,77 59,77" 
+           fill="#ffd700"/>
+  
+  <!-- Simple castle (right page) -->
+  <rect x="110" y="80" width="30" height="25" fill="#c8a2c8" stroke="#b085b0" stroke-width="1"/>
+  <rect x="115" y="75" width="5" height="10" fill="#c8a2c8" stroke="#b085b0" stroke-width="1"/>
+  <rect x="125" y="75" width="5" height="10" fill="#c8a2c8" stroke="#b085b0" stroke-width="1"/>
+  <rect x="135" y="75" width="5" height="10" fill="#c8a2c8" stroke="#b085b0" stroke-width="1"/>
+  <polygon points="115,75 117.5,70 120,75" fill="#8b4a8b"/>
+  <polygon points="125,75 127.5,70 130,75" fill="#8b4a8b"/>
+  <polygon points="135,75 137.5,70 140,75" fill="#8b4a8b"/>
+  
+  <!-- Castle flag -->
+  <line x1="127.5" y1="70" x2="127.5" y2="60" stroke="#8b4a8b" stroke-width="1"/>
+  <polygon points="127.5,60 132,62 127.5,65" fill="#ff6b9d"/>
+  
+  <!-- Small clouds -->
+  <ellipse cx="125" cy="50" rx="8" ry="4" fill="#e6f3ff" opacity="0.8"/>
+  <ellipse cx="130" cy="48" rx="6" ry="3" fill="#e6f3ff" opacity="0.8"/>
+  
+  <!-- Sparkles around the book -->
+  <polygon points="25,20 26,22 28,22 27,23 27,25 25,24 23,25 24,23 22,22 24,22" 
+           fill="#ffd700" opacity="0.7"/>
+  <polygon points="175,40 176,42 178,42 177,43 177,45 175,44 173,45 174,43 172,42 174,42" 
+           fill="#ffd700" opacity="0.7"/>
+  <polygon points="170,100 171,102 173,102 172,103 172,105 170,104 168,105 169,103 167,102 169,102" 
+           fill="#ffd700" opacity="0.7"/>
+  <polygon points="30,110 31,112 33,112 32,113 32,115 30,114 28,115 29,113 27,112 29,112" 
+           fill="#ffd700" opacity="0.7"/>
+  
+  <!-- Book binding details -->
+  <rect x="35" y="45" width="3" height="80" fill="#357abd"/>
+  <circle cx="36.5" cy="60" r="1.5" fill="#2a5d94"/>
+  <circle cx="36.5" cy="75" r="1.5" fill="#2a5d94"/>
+  <circle cx="36.5" cy="90" r="1.5" fill="#2a5d94"/>
+  <circle cx="36.5" cy="105" r="1.5" fill="#2a5d94"/>
+</svg>
