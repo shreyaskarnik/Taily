@@ -114,10 +114,11 @@ struct StoryView: View {
                                 if let content = story.content {
                                     MarkdownText(
                                         content,
-                                        font: .body,
-                                        lineSpacing: 6,
+                                        font: .body.weight(.medium), // Increased font weight
+                                        lineSpacing: 8, // Increased line spacing
                                         highlightRange: speechSynthesizer.isSpeakingContent ? speechSynthesizer.currentWordRange : nil
                                     )
+                                    .font(.system(size: 17)) // Slightly larger font size
                                     .foregroundColor(.primary)
                                     .padding(.horizontal)
                                     .contentTransition(.opacity)
@@ -137,60 +138,64 @@ struct StoryView: View {
 
                                 // Story illustration AFTER the text
                                 if let illustration = story.storyIllustration {
-                                    VStack {
-                                        if let image = illustration.image {
-                                            #if canImport(UIKit)
-                                            Image(uiImage: UIImage(cgImage: image))
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(maxHeight: dynamicImageHeight)
-                                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                .accessibilityLabel(illustration.imageDescription)
-                                                .transition(.opacity.combined(with: .scale))
-                                            #elseif canImport(AppKit)
-                                            Image(nsImage: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(maxHeight: dynamicImageHeight)
-                                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                .accessibilityLabel(illustration.imageDescription)
-                                                .transition(.opacity.combined(with: .scale))
-                                            #endif
-                                        } else if illustration.isResponding {
-                                            VStack(spacing: 12) {
-                                                ProgressView()
-                                                    .scaleEffect(1.2)
-                                                Text("Creating illustration...")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            .frame(height: dynamicImageHeight)
-                                            .frame(maxWidth: .infinity)
-                                            .background(Color(.systemGray6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        } else {
-                                            VStack(spacing: 12) {
-                                                Image("StoryBookPlaceholder")
+                                    HStack {
+                                        Spacer()
+                                        VStack {
+                                            if let image = illustration.image {
+                                                #if canImport(UIKit)
+                                                Image(uiImage: UIImage(cgImage: image))
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fit)
-                                                    .frame(height: dynamicImageHeight * 0.6)
-                                                VStack(spacing: 4) {
-                                                    Text("Story Illustration")
+                                                    .frame(maxHeight: dynamicImageHeight)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                                    .accessibilityLabel(illustration.imageDescription)
+                                                    .transition(.opacity.combined(with: .scale))
+                                                #elseif canImport(AppKit)
+                                                Image(nsImage: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(maxHeight: dynamicImageHeight)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                                    .accessibilityLabel(illustration.imageDescription)
+                                                    .transition(.opacity.combined(with: .scale))
+                                                #endif
+                                            } else if illustration.isResponding {
+                                                VStack(spacing: 12) {
+                                                    ProgressView()
+                                                        .scaleEffect(1.2)
+                                                    Text("Creating illustration...")
                                                         .font(.caption)
-                                                        .fontWeight(.medium)
                                                         .foregroundColor(.secondary)
-                                                    Text(illustration.imageDescription)
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
-                                                        .multilineTextAlignment(.center)
-                                                        .lineLimit(2)
                                                 }
+                                                .frame(height: dynamicImageHeight)
+                                                .frame(maxWidth: .infinity)
+                                                .background(Color(.systemGray6))
+                                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            } else {
+                                                VStack(spacing: 12) {
+                                                    Image("StoryBookPlaceholder")
+                                                        .resizable()
+                                                        .aspectRatio(contentMode: .fit)
+                                                        .frame(height: dynamicImageHeight * 0.6)
+                                                    VStack(spacing: 4) {
+                                                        Text("Story Illustration")
+                                                            .font(.caption)
+                                                            .fontWeight(.medium)
+                                                            .foregroundColor(.secondary)
+                                                        Text(illustration.imageDescription)
+                                                            .font(.caption2)
+                                                            .foregroundColor(.secondary)
+                                                            .multilineTextAlignment(.center)
+                                                            .lineLimit(2)
+                                                    }
+                                                }
+                                                .frame(height: dynamicImageHeight)
+                                                .frame(maxWidth: .infinity)
+                                                .background(Color(.systemGray6))
+                                                .clipShape(RoundedRectangle(cornerRadius: 12))
                                             }
-                                            .frame(height: dynamicImageHeight)
-                                            .frame(maxWidth: .infinity)
-                                            .background(Color(.systemGray6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
                                         }
+                                        Spacer()
                                     }
                                     .padding(.horizontal)
                                 }
