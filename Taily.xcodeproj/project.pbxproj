@@ -24,7 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		B1A4ACDA2E1B729A00E73CA4 /* Taily.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Taily.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1A4ACDA2E1B729A00E73CA4 /* Dozzi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dozzi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1A4ACE72E1B729B00E73CA4 /* TailyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TailyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1A4ACF12E1B729B00E73CA4 /* TailyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TailyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -85,7 +85,7 @@
 		B1A4ACDB2E1B729A00E73CA4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B1A4ACDA2E1B729A00E73CA4 /* Taily.app */,
+				B1A4ACDA2E1B729A00E73CA4 /* Dozzi.app */,
 				B1A4ACE72E1B729B00E73CA4 /* TailyTests.xctest */,
 				B1A4ACF12E1B729B00E73CA4 /* TailyUITests.xctest */,
 			);
@@ -95,9 +95,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		B1A4ACD92E1B729900E73CA4 /* Taily */ = {
+		B1A4ACD92E1B729900E73CA4 /* Dozzi */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B1A4ACFB2E1B729B00E73CA4 /* Build configuration list for PBXNativeTarget "Taily" */;
+			buildConfigurationList = B1A4ACFB2E1B729B00E73CA4 /* Build configuration list for PBXNativeTarget "Dozzi" */;
 			buildPhases = (
 				B1A4ACD62E1B729900E73CA4 /* Sources */,
 				B1A4ACD72E1B729900E73CA4 /* Frameworks */,
@@ -110,11 +110,11 @@
 			fileSystemSynchronizedGroups = (
 				B1A4ACDC2E1B729A00E73CA4 /* Taily */,
 			);
-			name = Taily;
+			name = Dozzi;
 			packageProductDependencies = (
 			);
 			productName = Taily;
-			productReference = B1A4ACDA2E1B729A00E73CA4 /* Taily.app */;
+			productReference = B1A4ACDA2E1B729A00E73CA4 /* Dozzi.app */;
 			productType = "com.apple.product-type.application";
 		};
 		B1A4ACE62E1B729B00E73CA4 /* TailyTests */ = {
@@ -200,7 +200,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				B1A4ACD92E1B729900E73CA4 /* Taily */,
+				B1A4ACD92E1B729900E73CA4 /* Dozzi */,
 				B1A4ACE62E1B729B00E73CA4 /* TailyTests */,
 				B1A4ACF02E1B729B00E73CA4 /* TailyUITests */,
 			);
@@ -258,12 +258,12 @@
 /* Begin PBXTargetDependency section */
 		B1A4ACE92E1B729B00E73CA4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = B1A4ACD92E1B729900E73CA4 /* Taily */;
+			target = B1A4ACD92E1B729900E73CA4 /* Dozzi */;
 			targetProxy = B1A4ACE82E1B729B00E73CA4 /* PBXContainerItemProxy */;
 		};
 		B1A4ACF32E1B729B00E73CA4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = B1A4ACD92E1B729900E73CA4 /* Taily */;
+			target = B1A4ACD92E1B729900E73CA4 /* Dozzi */;
 			targetProxy = B1A4ACF22E1B729B00E73CA4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -400,6 +400,8 @@
 				DEVELOPMENT_TEAM = NG3SG4T8TT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Dozzi;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -410,7 +412,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.shreyaskarnik.Taily;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shreyaskarnik.Dozzi;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -431,6 +433,8 @@
 				DEVELOPMENT_TEAM = NG3SG4T8TT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Dozzi;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -441,7 +445,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.shreyaskarnik.Taily;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shreyaskarnik.Dozzi;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -544,7 +548,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B1A4ACFB2E1B729B00E73CA4 /* Build configuration list for PBXNativeTarget "Taily" */ = {
+		B1A4ACFB2E1B729B00E73CA4 /* Build configuration list for PBXNativeTarget "Dozzi" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B1A4ACFC2E1B729B00E73CA4 /* Debug */,
