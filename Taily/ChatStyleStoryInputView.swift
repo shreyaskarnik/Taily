@@ -11,7 +11,7 @@ struct ChatStyleStoryInputView: View {
     @State private var cursorPosition = 0
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Check if profiles exist, show creation prompt if empty
                 if profileManager.isEmpty {
@@ -23,14 +23,13 @@ struct ChatStyleStoryInputView: View {
             .navigationBarHidden(true)
             .animation(.easeInOut(duration: 0.3), value: showingProfilePicker)
             .animation(.easeInOut(duration: 0.3), value: inputText.isEmpty)
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
-        .navigationDestination(isPresented: $showingStoryView) {
-            if let profile = mentionedProfile {
-                StoryView(
-                    storyGenerator: storyGenerator,
-                    parameters: createStoryParameters(for: profile)
-                )
+            .navigationDestination(isPresented: $showingStoryView) {
+                if let profile = mentionedProfile {
+                    StoryView(
+                        storyGenerator: storyGenerator,
+                        parameters: createStoryParameters(for: profile)
+                    )
+                }
             }
         }
     }
