@@ -85,6 +85,9 @@ struct ChildProfileView: View {
                     onEdit: {
                         editingProfile = profile
                         showingProfileEditor = true
+                    },
+                    onDelete: {
+                        profileManager.deleteProfile(profile)
                     }
                 )
             }
@@ -99,6 +102,9 @@ struct ChildProfileRow: View {
     let isSelected: Bool
     let onSelect: () -> Void
     let onEdit: () -> Void
+    let onDelete: () -> Void
+    
+    @State private var showingDeleteAlert = false
     
     var body: some View {
         HStack(spacing: 16) {
@@ -164,11 +170,20 @@ struct ChildProfileRow: View {
             Spacer()
             
             // Action buttons
-            VStack(spacing: 8) {
+            HStack(spacing: 16) {
                 Button(action: onEdit) {
                     Image(systemName: "pencil")
                         .font(.caption)
                         .foregroundColor(.blue)
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                
+                Button(action: {
+                    showingDeleteAlert = true
+                }) {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                        .foregroundColor(.red)
                 }
                 .buttonStyle(BorderlessButtonStyle())
                 
@@ -183,7 +198,29 @@ struct ChildProfileRow: View {
         .padding(.vertical, 8)
         .contentShape(Rectangle())
         .onTapGesture {
-            onSelect()
+            onEdit()
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                showingDeleteAlert = true
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            
+            Button {
+                onEdit()
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
+        .alert("Delete Profile", isPresented: $showingDeleteAlert) {
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Are you sure you want to delete \(profile.name)'s profile? This action cannot be undone.")
         }
     }
 }
@@ -320,7 +357,6 @@ struct ProfileEditorView: View {
                                 SelectableChip(option: value, selection: $selectedValues)
                             }
                         }
-                        .frame(maxHeight: .infinity)
                     }
                     .padding()
                     .background(Color.green.opacity(0.05))
@@ -341,7 +377,6 @@ struct ProfileEditorView: View {
                                 SelectableChip(option: theme, selection: $selectedThemes)
                             }
                         }
-                        .frame(maxHeight: .infinity)
                     }
                     .padding()
                     .background(Color.orange.opacity(0.05))

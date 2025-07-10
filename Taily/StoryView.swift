@@ -8,13 +8,52 @@ struct StoryView: View {
     @State private var modificationText = ""
     @State private var showingModificationField = false
     @State private var showingSaveAlert = false
-    @Environment(\.presentationMode) var presentationMode
-    
+
+    // Dynamic image height based on device size
+    private var dynamicImageHeight: CGFloat {
+        #if canImport(UIKit)
+        let screenHeight = UIScreen.main.bounds.height
+        let screenWidth = UIScreen.main.bounds.width
+
+        // For iPad (larger screens)
+        if min(screenWidth, screenHeight) > 700 {
+            return 350
+        }
+        // For larger iPhones (iPhone Pro Max, etc.)
+        else if screenHeight > 800 {
+            return 280
+        }
+        // For standard iPhones
+        else {
+            return 250
+        }
+        #else
+        // macOS fallback
+        return 300
+        #endif
+    }
+
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Story content
-                ScrollView {
+        contentView
+            .navigationTitle("Bedtime Story")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(false)
+            .onDisappear {
+                speechSynthesizer.stopSpeaking()
+            }
+            .alert("Story Saved!", isPresented: $showingSaveAlert) {
+                Button("OK") { }
+            } message: {
+                Text("Your story has been saved to the library.")
+            }
+    }
+
+    private var contentView: some View {
+        VStack(spacing: 0) {
+            // Story content
+            ScrollView {
+                HStack {
+                    Spacer()
                     VStack(alignment: .leading, spacing: 16) {
                         // Story header
                         HStack {
@@ -22,11 +61,10 @@ struct StoryView: View {
                                 Text("A story for \(parameters.childName)")
                                     .font(.title2)
                                     .fontWeight(.semibold)
-                                
+
                                 HStack {
                                     Label(parameters.tone.rawValue, systemImage: "sparkles")
                                     Spacer()
-                                    Label(parameters.setting.rawValue, systemImage: "location")
                                 }
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -34,9 +72,9 @@ struct StoryView: View {
                             Spacer()
                         }
                         .padding(.horizontal)
-                        
+
                         Divider()
-                        
+
                         // Story content with streaming support
                         if let story = storyGenerator.generatedStory {
                             VStack(alignment: .leading, spacing: 16) {
@@ -50,15 +88,14 @@ struct StoryView: View {
                                         ProgressView()
                                             .scaleEffect(0.8)
                                     }
-                                    
+
                                     if let title = story.title {
-                                        HighlightedText(
-                                            text: title,
-                                            highlightRange: speechSynthesizer.isSpeakingTitle ? speechSynthesizer.currentWordRange : nil,
-                                            font: .title,
-                                            lineSpacing: 0
+                                        MarkdownText(
+                                            title,
+                                            font: .title.bold(),
+                                            lineSpacing: 0,
+                                            highlightRange: speechSynthesizer.isSpeakingTitle ? speechSynthesizer.currentWordRange : nil
                                         )
-                                        .fontWeight(.bold)
                                         .foregroundColor(.primary)
                                         .contentTransition(.opacity)
                                     } else {
@@ -72,8 +109,33 @@ struct StoryView: View {
                                 .padding(.horizontal)
                                 .animation(.easeInOut(duration: 0.3), value: story.title)
                                 .animation(.easeInOut(duration: 0.3), value: story.emoji)
-                                
-                                // Story illustration with loading state
+
+                                // Story text first
+                                if let content = story.content {
+                                    MarkdownText(
+                                        content,
+                                        font: .body,
+                                        lineSpacing: 6,
+                                        highlightRange: speechSynthesizer.isSpeakingContent ? speechSynthesizer.currentWordRange : nil
+                                    )
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal)
+                                    .contentTransition(.opacity)
+                                    .animation(.easeInOut(duration: 0.3), value: content)
+                                } else {
+                                    VStack(spacing: 12) {
+                                        ProgressView()
+                                            .scaleEffect(1.2)
+                                        Text("Writing your story...")
+                                            .font(.body)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal)
+                                    .contentTransition(.opacity)
+                                }
+
+                                // Story illustration AFTER the text
                                 if let illustration = story.storyIllustration {
                                     VStack {
                                         if let image = illustration.image {
@@ -81,7 +143,7 @@ struct StoryView: View {
                                             Image(uiImage: UIImage(cgImage: image))
                                                 .resizable()
                                                 .aspectRatio(contentMode: .fit)
-                                                .frame(maxHeight: 200)
+                                                .frame(maxHeight: dynamicImageHeight)
                                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                                 .accessibilityLabel(illustration.imageDescription)
                                                 .transition(.opacity.combined(with: .scale))
@@ -89,7 +151,7 @@ struct StoryView: View {
                                             Image(nsImage: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
                                                 .resizable()
                                                 .aspectRatio(contentMode: .fit)
-                                                .frame(maxHeight: 200)
+                                                .frame(maxHeight: dynamicImageHeight)
                                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                                 .accessibilityLabel(illustration.imageDescription)
                                                 .transition(.opacity.combined(with: .scale))
@@ -102,17 +164,16 @@ struct StoryView: View {
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
-                                            .frame(height: 200)
+                                            .frame(height: dynamicImageHeight)
                                             .frame(maxWidth: .infinity)
                                             .background(Color(.systemGray6))
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                         } else {
-                                            // Show custom storybook placeholder when image generation isn't available
                                             VStack(spacing: 12) {
                                                 Image("StoryBookPlaceholder")
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fit)
-                                                    .frame(height: 120)
+                                                    .frame(height: dynamicImageHeight * 0.6)
                                                 VStack(spacing: 4) {
                                                     Text("Story Illustration")
                                                         .font(.caption)
@@ -120,123 +181,56 @@ struct StoryView: View {
                                                         .foregroundColor(.secondary)
                                                     Text(illustration.imageDescription)
                                                         .font(.caption2)
-                                                        .foregroundColor(
-                                                            .secondary
-                                                        )
+                                                        .foregroundColor(.secondary)
                                                         .multilineTextAlignment(.center)
                                                         .lineLimit(2)
                                                 }
                                             }
-                                            .frame(height: 200)
+                                            .frame(height: dynamicImageHeight)
                                             .frame(maxWidth: .infinity)
                                             .background(Color(.systemGray6))
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                         }
                                     }
                                     .padding(.horizontal)
-                                } else if storyGenerator.isGenerating {
-                                    VStack(spacing: 12) {
-                                        ProgressView()
-                                            .scaleEffect(1.2)
-                                        Text("Preparing illustration...")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .frame(height: 200)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(.systemGray6))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .padding(.horizontal)
-                                }
-                                
-                                // Show image for saved stories
-                                if let savedStory = storyGenerator.generatedStory, savedStory.storyIllustration == nil {
-                                    // If this is a saved story being displayed, show a placeholder or default image
-                                    VStack(spacing: 12) {
-                                        Image("StoryBookPlaceholder")
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(height: 120)
-                                        Text("Story illustration")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .frame(height: 200)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(.systemGray6))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .padding(.horizontal)
-                                }
-                                
-                                // Story text with streaming animation
-                                if let content = story.content {
-                                    HighlightedText(
-                                        text: content,
-                                        highlightRange: speechSynthesizer.isSpeakingContent ? speechSynthesizer.currentWordRange : nil,
-                                        font: .body,
-                                        lineSpacing: 6
-                                    )
-                                    .padding(.horizontal)
-                                    .contentTransition(.interpolate)
-                                    .animation(.easeOut(duration: 0.5), value: content)
-                                } else if storyGenerator.isGenerating {
-                                    VStack(spacing: 8) {
-                                        ProgressView()
-                                            .scaleEffect(1.2)
-                                        Text("Crafting your story...")
-                                            .font(.body)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 40)
-                                }
-                                
-                                // Reading progress indicator
-                                if speechSynthesizer.isSpeaking {
-                                    VStack(spacing: 8) {
-                                        HStack {
-                                            Text("Reading Progress")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                            Spacer()
-                                            Text("\(Int(speechSynthesizer.speechProgress * 100))%")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        
-                                        ProgressView(value: speechSynthesizer.speechProgress)
-                                            .tint(.blue)
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.top, 8)
                                 }
                             }
-                        } else if storyGenerator.isGenerating {
+                            .animation(.easeInOut(duration: 0.3), value: storyGenerator.generatedStory?.content)
+                        } else {
                             VStack(spacing: 20) {
                                 ProgressView()
                                     .scaleEffect(1.5)
-                                Text("Creating your magical story...")
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
+                                Text("Creating your personalized story...")
+                                    .font(.headline)
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.vertical, 60)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer()
                 }
-                
-                // Controls
+                .padding(.horizontal, 24)
+            }
+            .background(Color(UIColor.systemGroupedBackground))
+
+            Spacer()
+
+            // Controls
+            HStack {
+                Spacer()
                 VStack(spacing: 12) {
                     if showingModificationField {
                         HStack {
                             TextField("How would you like to modify the story?", text: $modificationText)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                            
+
                             Button("Apply") {
                                 modifyStory()
                             }
                             .disabled(modificationText.isEmpty || storyGenerator.isGenerating)
-                            
+
                             Button("Cancel") {
                                 showingModificationField = false
                                 modificationText = ""
@@ -244,8 +238,7 @@ struct StoryView: View {
                         }
                         .padding(.horizontal)
                     }
-                    
-                    // Action buttons
+
                     VStack(spacing: 12) {
                         HStack(spacing: 16) {
                             Button(action: {
@@ -259,7 +252,7 @@ struct StoryView: View {
                                     .cornerRadius(10)
                             }
                             .disabled(storyGenerator.isGenerating)
-                            
+
                             Button(action: toggleSpeech) {
                                 Label(
                                     speechSynthesizer.isSpeaking ? "Pause" : "Read Story",
@@ -273,8 +266,7 @@ struct StoryView: View {
                             }
                             .disabled(storyGenerator.generatedStory?.content == nil)
                         }
-                        
-                        // Save button
+
                         Button(action: saveStory) {
                             Label("Save Story", systemImage: "heart.fill")
                                 .frame(maxWidth: .infinity)
@@ -287,29 +279,14 @@ struct StoryView: View {
                     }
                     .padding(.horizontal)
                 }
-                .padding(.bottom)
-                .background(Color(UIColor.systemGroupedBackground))
+                .frame(maxWidth: .infinity)
+                Spacer()
             }
-            .navigationTitle("Bedtime Story")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(
-                leading: Button("Done") {
-                    speechSynthesizer.stopSpeaking()
-                    presentationMode.wrappedValue.dismiss()
-                }
-            )
-            .onDisappear {
-                speechSynthesizer.stopSpeaking()
-            }
-            .alert("Story Saved!", isPresented: $showingSaveAlert) {
-                Button("OK") { }
-            } message: {
-                Text("Your story has been saved to the library.")
-            }
+            .padding(.bottom)
+            .background(Color(UIColor.systemGroupedBackground))
         }
-        .navigationViewStyle(StackNavigationViewStyle())
     }
-    
+
     private func modifyStory() {
         Task {
             await storyGenerator.regenerateStory(with: parameters, modification: modificationText)
@@ -317,7 +294,7 @@ struct StoryView: View {
             modificationText = ""
         }
     }
-    
+
     private func toggleSpeech() {
         if speechSynthesizer.isSpeaking {
             speechSynthesizer.pauseSpeaking()
@@ -329,14 +306,13 @@ struct StoryView: View {
             }
         }
     }
-    
+
     private func saveStory() {
         guard let partialStory = storyGenerator.generatedStory,
               let title = partialStory.title,
               let emoji = partialStory.emoji,
               let content = partialStory.content else { return }
-        
-        // Create a complete story from the partial one
+
         let completeStory = GeneratedStory(
             title: title,
             emoji: emoji,
@@ -344,7 +320,7 @@ struct StoryView: View {
             ssmlContent: partialStory.ssmlContent,
             storyIllustration: partialStory.storyIllustration
         )
-        
+
         libraryManager.saveStory(completeStory, parameters: parameters)
         showingSaveAlert = true
     }

@@ -17,7 +17,7 @@ struct ChildProfile: Identifiable, Codable {
     var customNotes: String
     let dateCreated: Date
     var dateModified: Date
-    
+
     init(
         name: String,
         ageGroup: AgeGroup,
@@ -42,7 +42,7 @@ struct ChildProfile: Identifiable, Codable {
         self.dateCreated = Date()
         self.dateModified = Date()
     }
-    
+
     mutating func update(
         name: String,
         ageGroup: AgeGroup,
@@ -65,7 +65,7 @@ struct ChildProfile: Identifiable, Codable {
         self.customNotes = customNotes
         self.dateModified = Date()
     }
-    
+
     func toStoryParameters(
         values: [StoryValue]? = nil,
         themes: [CharacterTheme]? = nil,
@@ -79,8 +79,8 @@ struct ChildProfile: Identifiable, Codable {
             gender: gender,
             values: values ?? favoriteValues,
             themes: themes ?? favoriteThemes,
-            setting: setting ?? preferredSetting ?? .forest,
-            tone: tone ?? preferredTone ?? .calming,
+            setting: setting ?? preferredSetting ?? StorySetting.allCases.randomElement() ?? .forest,
+            tone: tone ?? preferredTone ?? StoryTone.allCases.randomElement() ?? .calming,
             length: length ?? preferredLength ?? .medium
         )
     }
@@ -91,16 +91,16 @@ struct ChildProfile: Identifiable, Codable {
 class ChildProfileManager: ObservableObject {
     @Published var profiles: [ChildProfile] = []
     @Published var selectedProfile: ChildProfile?
-    
+
     private let userDefaults = UserDefaults.standard
     private let profilesKey = "ChildProfiles"
-    
+
     init() {
         loadProfiles()
     }
-    
+
     // MARK: - Persistence
-    
+
     private func loadProfiles() {
         guard let data = userDefaults.data(forKey: profilesKey),
               let profiles = try? JSONDecoder().decode([ChildProfile].self, from: data) else {
@@ -111,20 +111,20 @@ class ChildProfileManager: ObservableObject {
             self.selectedProfile = firstProfile
         }
     }
-    
+
     private func saveProfiles() {
         guard let data = try? JSONEncoder().encode(profiles) else { return }
         userDefaults.set(data, forKey: profilesKey)
     }
-    
+
     // MARK: - Profile Management
-    
+
     func addProfile(_ profile: ChildProfile) {
         profiles.append(profile)
         selectedProfile = profile
         saveProfiles()
     }
-    
+
     func updateProfile(_ profile: ChildProfile) {
         guard let index = profiles.firstIndex(where: { $0.id == profile.id }) else { return }
         profiles[index] = profile
@@ -134,7 +134,7 @@ class ChildProfileManager: ObservableObject {
         }
         saveProfiles()
     }
-    
+
     func deleteProfile(_ profile: ChildProfile) {
         profiles.removeAll { $0.id == profile.id }
         if selectedProfile?.id == profile.id {
@@ -142,7 +142,7 @@ class ChildProfileManager: ObservableObject {
         }
         saveProfiles()
     }
-    
+
     func deleteProfile(at indexSet: IndexSet) {
         let profilesToDelete = indexSet.map { profiles[$0] }
         for profile in profilesToDelete {
@@ -155,21 +155,21 @@ class ChildProfileManager: ObservableObject {
         profiles.remove(atOffsets: indexSet)
         saveProfiles()
     }
-    
+
     func selectProfile(_ profile: ChildProfile) {
         selectedProfile = profile
     }
-    
+
     // MARK: - Utility
-    
+
     var isEmpty: Bool {
         profiles.isEmpty
     }
-    
+
     var count: Int {
         profiles.count
     }
-    
+
     func profile(withId id: UUID) -> ChildProfile? {
         profiles.first { $0.id == id }
     }
@@ -178,20 +178,20 @@ class ChildProfileManager: ObservableObject {
 // MARK: - Enhanced Story Parameters
 
 extension StoryParameters {
-    init(from profile: ChildProfile, customLength: StoryLength? = nil, customNotes: String? = nil) {
+    init(from profile: ChildProfile, customLength: StoryLength? = nil, customNotes: String? = nil, overrideSetting: StorySetting? = nil) {
         self.init(
             childName: profile.name,
             ageGroup: profile.ageGroup,
             gender: profile.gender,
             values: profile.favoriteValues,
             themes: profile.favoriteThemes,
-            setting: profile.preferredSetting ?? .forest,
-            tone: profile.preferredTone ?? .calming,
+            setting: overrideSetting ?? profile.preferredSetting ?? StorySetting.allCases.randomElement() ?? .forest,
+            tone: profile.preferredTone ?? StoryTone.allCases.randomElement() ?? .calming,
             length: customLength ?? profile.preferredLength ?? .medium,
             customNotes: customNotes ?? (profile.customNotes.isEmpty ? nil : profile.customNotes)
         )
     }
-    
+
     var hasCustomNotes: Bool {
         customNotes != nil && !customNotes!.isEmpty
     }

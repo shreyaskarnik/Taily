@@ -36,7 +36,7 @@ struct StoryInputView: View {
                         RoundedRectangle(cornerRadius: 16)
                             .fill(Color.purple.opacity(0.1))
                     )
-                    
+
                     // Profile Selection Section
                     if !profileManager.isEmpty {
                         VStack(alignment: .leading, spacing: 16) {
@@ -46,30 +46,30 @@ struct StoryInputView: View {
                                 Text("Choose a child profile")
                                     .font(.headline)
                                     .foregroundColor(.purple)
-                                
+
                                 Spacer()
-                                
+
                                 Button("Manage") {
                                     showingProfileManager = true
                                 }
                                 .font(.caption)
                                 .foregroundColor(.blue)
                             }
-                            
+
                             Toggle("Use saved profile", isOn: $useProfile)
                                 .onChange(of: useProfile) {
                                     updateFromProfile()
                                 }
-                            
+
                             if useProfile {
                                 if let selectedProfile = profileManager.selectedProfile {
                                     ProfileSummaryCard(profile: selectedProfile)
-                                    
+
                                     HStack {
                                         Text("Select different profile:")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        
+
                                         Picker("Profile", selection: Binding(
                                             get: { profileManager.selectedProfile?.id ?? UUID() },
                                             set: { id in
@@ -97,7 +97,7 @@ struct StoryInputView: View {
                                 .fill(Color.purple.opacity(0.1))
                         )
                     }
-                    
+
                     // Child Information Section
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
@@ -106,7 +106,7 @@ struct StoryInputView: View {
                             Text(useProfile && profileManager.selectedProfile != nil ? "Story customization" : "Who's the star of this story?")
                                 .font(.headline)
                                 .foregroundColor(.blue)
-                            
+
                             if profileManager.isEmpty || !useProfile {
                                 Spacer()
                                 Button(action: {
@@ -135,7 +135,7 @@ struct StoryInputView: View {
                                 Text("How old are they?")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                
+
                                 Picker("Age Group", selection: $selectedAgeGroup) {
                                     ForEach(AgeGroup.allCases, id: \.self) { age in
                                         Text(age.rawValue).tag(age)
@@ -143,12 +143,12 @@ struct StoryInputView: View {
                                 }
                                 .pickerStyle(SegmentedPickerStyle())
                             }
-                            
+
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Would you like to specify gender? (Optional)")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                
+
                                 Picker("Gender", selection: $selectedGender) {
                                     Text("Not specified").tag(nil as ChildGender?)
                                     ForEach(ChildGender.allCases, id: \.self) { gender in
@@ -156,7 +156,7 @@ struct StoryInputView: View {
                                     }
                                 }
                                 .pickerStyle(MenuPickerStyle())
-                                
+
                                 if let selectedGender = selectedGender {
                                     Text("Will use \(selectedGender.pronouns) pronouns")
                                         .font(.caption)
@@ -186,17 +186,17 @@ struct StoryInputView: View {
                                 .font(.headline)
                                 .foregroundColor(.blue)
                         }
-                        
+
                         Text("Tell us about the story you'd like to create")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Examples:")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .fontWeight(.medium)
-                            
+
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("• \"A brave little girl who helps forest animals\"")
                                 Text("• \"An adventure in space with friendly robots\"")
@@ -210,7 +210,7 @@ struct StoryInputView: View {
                         .padding(12)
                         .background(Color.blue.opacity(0.05))
                         .cornerRadius(8)
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             TextEditor(text: $storyDescription)
                                 .frame(minHeight: 100)
@@ -221,7 +221,7 @@ struct StoryInputView: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color.blue.opacity(0.2), lineWidth: 1)
                                 )
-                            
+
                             if storyDescription.isEmpty {
                                 Text("Describe the story you'd like to create for \(useProfile && profileManager.selectedProfile != nil ? profileManager.selectedProfile!.name : (childName.isEmpty ? "your child" : childName))")
                                     .font(.caption)
@@ -229,19 +229,19 @@ struct StoryInputView: View {
                                     .padding(.horizontal, 4)
                             }
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Story Length")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
-                            
+
                             Picker("Length", selection: $selectedLength) {
                                 ForEach(StoryLength.allCases, id: \.self) { length in
                                     Text(length.rawValue).tag(length)
                                 }
                             }
                             .pickerStyle(SegmentedPickerStyle())
-                            
+
                             Text(selectedLength.description)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -314,14 +314,28 @@ struct StoryInputView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
+            // If profiles exist but none is selected, select the first one
+            if !profileManager.isEmpty && profileManager.selectedProfile == nil {
+                profileManager.selectProfile(profileManager.profiles.first!)
+            }
             updateFromProfile()
         }
     }
 
     private var canGenerateStory: Bool {
-        if useProfile, profileManager.selectedProfile != nil {
-            return !storyDescription.isEmpty
+        if useProfile {
+            // If using profile mode, we need either a selected profile OR fall back to manual input
+            if let _ = profileManager.selectedProfile {
+                return !storyDescription.isEmpty
+            } else if !profileManager.isEmpty {
+                // Profiles exist but none selected - should not happen in normal flow
+                return false
+            } else {
+                // No profiles exist, fall back to manual input
+                return !childName.isEmpty && !storyDescription.isEmpty
+            }
         } else {
+            // Manual input mode
             return !childName.isEmpty && !storyDescription.isEmpty
         }
     }
@@ -351,23 +365,23 @@ struct StoryInputView: View {
     private func generateStory() {
         // Immediately show the story view when generation starts
         showingStoryView = true
-        
+
         // Start story generation in the background
         Task {
             await storyGenerator.generateStory(with: currentStoryParameters)
         }
     }
-    
-    
+
+
     private func updateFromProfile() {
         guard useProfile, let profile = profileManager.selectedProfile else { return }
-        
+
         // Pre-fill length preference
         if let preferredLength = profile.preferredLength {
             selectedLength = preferredLength
         }
     }
-    
+
     private func createProfileFromCurrentInput() {
         // Create a new profile with current input values
         let newProfile = ChildProfile(
@@ -381,12 +395,12 @@ struct StoryInputView: View {
             preferredLength: selectedLength,
             customNotes: storyDescription
         )
-        
+
         profileManager.addProfile(newProfile)
-        
+
         // Switch to using the newly created profile
         useProfile = true
-        
+
         // Show success feedback
         showingProfileCreatedAlert = true
     }
@@ -396,16 +410,16 @@ struct StoryInputView: View {
 
 struct ProfileSummaryCard: View {
     let profile: ChildProfile
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(profile.name)
                     .font(.title3)
                     .fontWeight(.semibold)
-                
+
                 Spacer()
-                
+
                 Text(profile.ageGroup.rawValue)
                     .font(.caption)
                     .padding(.horizontal, 8)
@@ -414,13 +428,13 @@ struct ProfileSummaryCard: View {
                     .foregroundColor(.blue)
                     .cornerRadius(8)
             }
-            
+
             if let gender = profile.gender {
                 Text(gender.displayName)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             if !profile.customNotes.isEmpty {
                 Text("\"" + profile.customNotes + "\"")
                     .font(.caption)
@@ -428,13 +442,13 @@ struct ProfileSummaryCard: View {
                     .italic()
                     .padding(.top, 4)
             }
-            
+
             if !profile.favoriteThemes.isEmpty {
                 HStack {
                     Text("Loves:")
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    
+
                     ForEach(profile.favoriteThemes.prefix(3), id: \.self) { theme in
                         Text(theme.rawValue)
                             .font(.caption2)
@@ -444,7 +458,7 @@ struct ProfileSummaryCard: View {
                             .foregroundColor(.green)
                             .cornerRadius(4)
                     }
-                    
+
                     if profile.favoriteThemes.count > 3 {
                         Text("+\(profile.favoriteThemes.count - 3) more")
                             .font(.caption2)
@@ -501,7 +515,7 @@ struct SelectableChip<T: Hashable & RawRepresentable>: View where T.RawValue == 
             .background(
                 RoundedRectangle(cornerRadius: 20)
                     .fill(
-                        isSelected 
+                        isSelected
                         ? LinearGradient(colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing)
                         : LinearGradient(colors: [Color.gray.opacity(0.1)], startPoint: .leading, endPoint: .trailing)
                     )
@@ -531,21 +545,21 @@ struct WrapLayout<T: Hashable, Content: View>: View {
     let items: [T]
     let spacing: CGFloat
     let content: (T) -> Content
-    
+
     var body: some View {
         GeometryReader { geometry in
             createContent(in: geometry.size.width)
         }
     }
-    
+
     private func createContent(in width: CGFloat) -> some View {
         var rows: [[T]] = []
         var currentRow: [T] = []
-        
+
         // Simple approach: estimate item width for wrapping
         let estimatedItemWidth: CGFloat = 100 // Rough estimate for chip width
         let itemsPerRow = max(1, Int(width / estimatedItemWidth))
-        
+
         // Group items into rows
         for (index, item) in items.enumerated() {
             if index > 0 && index % itemsPerRow == 0 {
@@ -555,11 +569,11 @@ struct WrapLayout<T: Hashable, Content: View>: View {
                 currentRow.append(item)
             }
         }
-        
+
         if !currentRow.isEmpty {
             rows.append(currentRow)
         }
-        
+
         return VStack(alignment: .leading, spacing: spacing) {
             ForEach(Array(rows.enumerated()), id: \.offset) { rowIndex, row in
                 HStack(spacing: spacing) {

@@ -79,7 +79,7 @@ struct GeneratedStory: Codable {
             storyIllustration = nil
         }
     }
-    
+
     // Custom encoding to handle GenerableImage
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -284,17 +284,17 @@ enum StoryLength: String, CaseIterable, Codable {
                     Create stories that are soothing, positive, and incorporate the values and themes requested.
                     Keep the language simple and appropriate for the child's age group.
                     End stories with a peaceful, satisfying conclusion perfect for bedtime.
-                    
-                    CRITICAL: Always include a companion illustration description that captures the story's essence and magical atmosphere. 
-                    ABSOLUTELY CRITICAL: In illustration descriptions, NEVER include human characters of any age (no children, people, boys, girls, etc.). 
-                    Instead, focus on magical settings, enchanted objects, fantasy creatures, woodland animals, and atmospheric elements that represent the story's mood and theme. 
+
+                    CRITICAL: Always include a companion illustration description that captures the story's essence and magical atmosphere.
+                    ABSOLUTELY CRITICAL: In illustration descriptions, NEVER include human characters of any age (no children, people, boys, girls, etc.).
+                    Instead, focus on magical settings, enchanted objects, fantasy creatures, woodland animals, and atmospheric elements that represent the story's mood and theme.
                     The illustration should show the magical world the story takes place in, allowing readers to imagine themselves within that enchanted environment.
                     """
                 )
 
                 session = LanguageModelSession(instructions: instructions)
                 let prompt = createPrompt(for: parameters)
-                
+
                 // Use streaming response for real-time updates
                 let stream = session!.streamResponse(
                     generating: GeneratedStory.self,
@@ -308,7 +308,7 @@ enum StoryLength: String, CaseIterable, Codable {
                 for try await partialStory in stream {
                     generatedStory = partialStory
                 }
-                
+
             } catch {
                 print("Story generation error: \(error)")
                 errorMessage = "Failed to generate story. Please try again."
@@ -317,7 +317,7 @@ enum StoryLength: String, CaseIterable, Codable {
             isGenerating = false
         }
 
-        
+
         private func createPrompt(for parameters: StoryParameters) -> String {
             let valuesText = parameters.values.map { $0.rawValue }.joined(
                 separator: ", "
@@ -334,38 +334,72 @@ enum StoryLength: String, CaseIterable, Codable {
             }
 
             var prompt = """
-                Create a bedtime story for a child named \(parameters.childName).
+                Create a personalized bedtime story for \(parameters.childName) (\(parameters.ageGroup.rawValue)).
 
-                Story Requirements:
+                🎯 REQUIRED STORY SETTING: \(parameters.setting.rawValue)
+                📝 REQUIRED STORY TONE: \(parameters.tone.rawValue)
+
+                CREATIVE TOOLKIT - SELECT AND MIX:
+                Choose 2-3 values from: \(valuesText)
+                Choose 2-3 character themes from: \(themesText)
+
+                VARIETY MANDATE:
+                - You MUST use the specified setting: \(parameters.setting.rawValue)
+                - Create stories that feel fresh and different each time
+                - Let the chosen setting drive the story's unique atmosphere and possibilities
+                - Setting-specific elements to emphasize:
+                  • Outer Space: rockets, planets, aliens, zero gravity, space stations
+                  • Under the Sea: coral reefs, sea creatures, underwater cities, submarines
+                  • Magic Castle: towers, drawbridges, knights, magical artifacts, throne rooms
+                  • Jungle Adventure: vines, exotic animals, hidden temples, river crossings
+                  • Big City: skyscrapers, busy streets, subways, parks, museums
+                  • Countryside Farm: barns, tractors, farm animals, fields, harvest time
+                  • Mountain Peak: caves, climbing, snow, wildlife, scenic views
+
+                STORY REQUIREMENTS:
+                - Length: approximately \(parameters.length.wordCount) words
                 - Age appropriate for: \(parameters.ageGroup.rawValue) (\(parameters.ageGroup.description))
-                - Story length: approximately \(parameters.length.wordCount) words
-                - Tone: \(parameters.tone.rawValue)
-                - Setting: \(parameters.setting.rawValue)
-                - Character themes: \(themesText)
-                - Values to emphasize: \(valuesText)
                 - Pronouns: \(pronounInstruction)
+                - Build the story around the REQUIRED setting and tone
+                - Naturally integrate selected values through character actions and story resolution
                 """
 
             // Add custom notes if available
             if let customNotes = parameters.customNotes, !customNotes.isEmpty {
                 prompt += """
 
-                IMPORTANT PERSONALIZATION NOTES:
-                \(parameters.childName)'s interests and preferences: \(customNotes)
-                Please incorporate these personal details naturally into the story to make it more engaging and relatable for \(parameters.childName).
+                🎯 PERSONALIZATION NOTES (PRIORITY):
+                \(parameters.childName)'s special interests: \(customNotes)
+
+                WEAVING INSTRUCTIONS:
+                - Use these personal details as the foundation for the story
+                - Blend them naturally with the selected values and character themes
+                - Make \(parameters.childName) feel this story was created specifically for them
+                - Reference their interests, favorite things, or special notes throughout
                 """
             }
 
             prompt += """
 
-                Guidelines:
-                - Use simple, age-appropriate language
-                - Include \(parameters.childName) as the main character or someone they can relate to
-                - Make it engaging but suitable for bedtime (not too exciting if tone is calming)
-                - Include positive messages about \(valuesText)
-                - End with a peaceful, satisfying conclusion
-                - Use vivid but gentle descriptions
+                CREATIVE GUIDELINES:
+                - Use simple, age-appropriate language suitable for \(parameters.ageGroup.rawValue)
+                - Make \(parameters.childName) the main character or someone they can relate to
+                - Balance engagement with bedtime suitability (calming tone = peaceful, adventurous tone = exciting but resolved)
+
+                SETTING FOCUS:
+                - Fully embrace the \(parameters.setting.rawValue) setting with rich, specific details
+                - Use unique elements that ONLY this setting can provide
+                - Avoid generic "forest" language - be specific to the chosen environment
+                - Create adventures that could ONLY happen in \(parameters.setting.rawValue)
+
+                STORY CRAFTING:
+                - Naturally incorporate chosen values through character actions and story resolution
+                - Let selected character themes drive the story's magical elements and companions
+                - End with a peaceful, satisfying conclusion that reinforces the key values
+                - Use vivid but gentle descriptions that spark imagination
                 - \(pronounInstruction)
+                - Create organic connections between the child's interests and the story world
+                - Ensure each story feels unique and fresh, never repetitive
 
                 CRITICAL OUTPUT REQUIREMENTS:
                 - The 'content' field must contain ONLY PLAIN TEXT with no markup, tags, or special formatting or emojis.
@@ -422,10 +456,10 @@ enum StoryLength: String, CaseIterable, Codable {
                     You are a creative storyteller who modifies bedtime stories based on user requests.
                     Keep the core story structure and characters while incorporating the requested changes.
                     Maintain age-appropriate language and a peaceful, bedtime-friendly tone.
-                    
-                    CRITICAL: Always include a companion illustration description that captures the story's essence and magical atmosphere. 
-                    ABSOLUTELY CRITICAL: In illustration descriptions, NEVER include human characters of any age (no children, people, boys, girls, etc.). 
-                    Instead, focus on magical settings, enchanted objects, fantasy creatures, woodland animals, and atmospheric elements that represent the story's mood and theme. 
+
+                    CRITICAL: Always include a companion illustration description that captures the story's essence and magical atmosphere.
+                    ABSOLUTELY CRITICAL: In illustration descriptions, NEVER include human characters of any age (no children, people, boys, girls, etc.).
+                    Instead, focus on magical settings, enchanted objects, fantasy creatures, woodland animals, and atmospheric elements that represent the story's mood and theme.
                     The illustration should show the magical world the story takes place in, allowing readers to imagine themselves within that enchanted environment.
                     """
                 )
@@ -440,7 +474,7 @@ enum StoryLength: String, CaseIterable, Codable {
 
                     Keep the same character (\(parameters.childName)) and maintain the appropriate tone for bedtime.
                     Provide a new title, emoji, complete modified story content, and a new illustration description.
-                    
+
                     ILLUSTRATION: Describe ONLY the magical environment and setting - no people, no names, no characters.
                     """
 
@@ -457,7 +491,7 @@ enum StoryLength: String, CaseIterable, Codable {
                 for try await partialStory in stream {
                     generatedStory = partialStory
                 }
-                
+
             } catch {
                 print("Story modification error: \(error)")
                 errorMessage = "Failed to modify story. Please try again."
