@@ -1,14 +1,14 @@
 //
-//  TailyTests.swift
-//  TailyTests
+//  DozziTests.swift
+//  DozziTests
 //
 //  Created by Shreyas Karnik on 7/6/25.
 //
 
 import XCTest
-@testable import Taily
+@testable import Dozzi
 
-final class TailyTests: XCTestCase {
+final class DozziTests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

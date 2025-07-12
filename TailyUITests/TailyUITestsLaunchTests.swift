@@ -1,13 +1,13 @@
 //
-//  TailyUITestsLaunchTests.swift
-//  TailyUITests
+//  DozziUITestsLaunchTests.swift
+//  DozziUITests
 //
 //  Created by Shreyas Karnik on 7/6/25.
 //
 
 import XCTest
 
-final class TailyUITestsLaunchTests: XCTestCase {
+final class DozziUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

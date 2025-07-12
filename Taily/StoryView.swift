@@ -110,15 +110,14 @@ struct StoryView: View {
                                 .animation(.easeInOut(duration: 0.3), value: story.title)
                                 .animation(.easeInOut(duration: 0.3), value: story.emoji)
 
-                                // Story text first
+                                // Story text with streaming animation and markdown formatting
                                 if let content = story.content {
                                     MarkdownText(
                                         content,
-                                        font: .body.weight(.medium), // Increased font weight
-                                        lineSpacing: 8, // Increased line spacing
+                                        font: .body,
+                                        lineSpacing: 6,
                                         highlightRange: speechSynthesizer.isSpeakingContent ? speechSynthesizer.currentWordRange : nil
                                     )
-                                    .font(.system(size: 17)) // Slightly larger font size
                                     .foregroundColor(.primary)
                                     .padding(.horizontal)
                                     .contentTransition(.opacity)
@@ -136,72 +135,104 @@ struct StoryView: View {
                                     .contentTransition(.opacity)
                                 }
 
-                                // Story illustration AFTER the text
+                                // Story illustration with loading state
                                 if let illustration = story.storyIllustration {
-                                    HStack {
-                                        Spacer()
-                                        VStack {
-                                            if let image = illustration.image {
-                                                #if canImport(UIKit)
-                                                Image(uiImage: UIImage(cgImage: image))
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(maxHeight: dynamicImageHeight)
-                                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                    .accessibilityLabel(illustration.imageDescription)
-                                                    .transition(.opacity.combined(with: .scale))
-                                                #elseif canImport(AppKit)
-                                                Image(nsImage: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(maxHeight: dynamicImageHeight)
-                                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                                    .accessibilityLabel(illustration.imageDescription)
-                                                    .transition(.opacity.combined(with: .scale))
-                                                #endif
-                                            } else if illustration.isResponding {
-                                                VStack(spacing: 12) {
-                                                    ProgressView()
-                                                        .scaleEffect(1.2)
-                                                    Text("Creating illustration...")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
-                                                }
-                                                .frame(height: dynamicImageHeight)
-                                                .frame(maxWidth: .infinity)
-                                                .background(Color(.systemGray6))
+                                    VStack {
+                                        if let image = illustration.image {
+                                            #if canImport(UIKit)
+                                            Image(uiImage: UIImage(cgImage: image))
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .frame(maxHeight: dynamicImageHeight)
                                                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                                            } else {
-                                                VStack(spacing: 12) {
-                                                    Image("StoryBookPlaceholder")
-                                                        .resizable()
-                                                        .aspectRatio(contentMode: .fit)
-                                                        .frame(height: dynamicImageHeight * 0.6)
-                                                    VStack(spacing: 4) {
-                                                        Text("Story Illustration")
-                                                            .font(.caption)
-                                                            .fontWeight(.medium)
-                                                            .foregroundColor(.secondary)
-                                                        Text(illustration.imageDescription)
-                                                            .font(.caption2)
-                                                            .foregroundColor(.secondary)
-                                                            .multilineTextAlignment(.center)
-                                                            .lineLimit(2)
-                                                    }
-                                                }
-                                                .frame(height: dynamicImageHeight)
-                                                .frame(maxWidth: .infinity)
-                                                .background(Color(.systemGray6))
+                                                .accessibilityLabel(illustration.imageDescription)
+                                                .transition(.opacity.combined(with: .scale))
+                                            #elseif canImport(AppKit)
+                                            Image(nsImage: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .frame(maxHeight: dynamicImageHeight)
                                                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                                                .accessibilityLabel(illustration.imageDescription)
+                                                .transition(.opacity.combined(with: .scale))
+                                            #endif
+                                        } else if illustration.isResponding {
+                                            VStack(spacing: 12) {
+                                                ProgressView()
+                                                    .scaleEffect(1.2)
+                                                Text("Creating illustration...")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
                                             }
+                                            .frame(height: dynamicImageHeight)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color(.systemGray6))
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        } else {
+                                            // Show custom storybook placeholder when image generation isn't available
+                                            VStack(spacing: 12) {
+                                                Image("StoryBookPlaceholder")
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(height: dynamicImageHeight * 0.6)
+                                                VStack(spacing: 4) {
+                                                    Text("Story Illustration")
+                                                        .font(.caption)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(.secondary)
+                                                    Text(illustration.imageDescription)
+                                                        .font(.caption2)
+                                                        .foregroundColor(
+                                                            .secondary
+                                                        )
+                                                        .multilineTextAlignment(.center)
+                                                        .lineLimit(2)
+                                                }
+                                            }
+                                            .frame(height: dynamicImageHeight)
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color(.systemGray6))
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
                                         }
-                                        Spacer()
                                     }
+                                    .padding(.horizontal)
+                                } else if storyGenerator.isGenerating {
+                                    VStack(spacing: 12) {
+                                        ProgressView()
+                                            .scaleEffect(1.2)
+                                        Text("Preparing illustration...")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(height: dynamicImageHeight)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(.systemGray6))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .padding(.horizontal)
+                                }
+
+                                // Show image for saved stories
+                                if let savedStory = storyGenerator.generatedStory, savedStory.storyIllustration == nil {
+                                    // If this is a saved story being displayed, show a placeholder or default image
+                                    VStack(spacing: 12) {
+                                        Image("StoryBookPlaceholder")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(height: dynamicImageHeight * 0.6)
+                                        Text("Story illustration")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .frame(height: dynamicImageHeight)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(.systemGray6))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
                                     .padding(.horizontal)
                                 }
                             }
                             .animation(.easeInOut(duration: 0.3), value: storyGenerator.generatedStory?.content)
                         } else {
+                            // Initial loading state
                             VStack(spacing: 20) {
                                 ProgressView()
                                     .scaleEffect(1.5)
@@ -212,85 +243,89 @@ struct StoryView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
                         }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-            }
-            .background(Color(UIColor.systemGroupedBackground))
-
-            Spacer()
-
-            // Controls
-            HStack {
-                Spacer()
-                VStack(spacing: 12) {
-                    if showingModificationField {
-                        HStack {
-                            TextField("How would you like to modify the story?", text: $modificationText)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                            Button("Apply") {
-                                modifyStory()
-                            }
-                            .disabled(modificationText.isEmpty || storyGenerator.isGenerating)
-
-                            Button("Cancel") {
-                                showingModificationField = false
-                                modificationText = ""
-                            }
                         }
-                        .padding(.horizontal)
+                        .frame(maxWidth: .infinity, alignment: .leading) // Use full width available on iPad
+                        .padding(.horizontal, 24) // Increased horizontal padding for better spacing
+                        Spacer()
                     }
+                    .padding(.horizontal, 24) // Increased horizontal padding for better spacing
+                }
+                .background(Color(UIColor.systemGroupedBackground))
 
+                // Spacer for better visual separation
+                Spacer()
+
+                // Controls
+                HStack {
+                    Spacer()
                     VStack(spacing: 12) {
-                        HStack(spacing: 16) {
-                            Button(action: {
-                                showingModificationField.toggle()
-                            }) {
-                                Label("Edit", systemImage: "pencil")
+                        if showingModificationField {
+                            HStack {
+                                TextField("How would you like to modify the story?", text: $modificationText)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                                Button("Apply") {
+                                    modifyStory()
+                                }
+                                .disabled(modificationText.isEmpty || storyGenerator.isGenerating)
+
+                                Button("Cancel") {
+                                    showingModificationField = false
+                                    modificationText = ""
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+
+                        // Action buttons
+                        VStack(spacing: 12) {
+                            HStack(spacing: 16) {
+                                Button(action: {
+                                    showingModificationField.toggle()
+                                }) {
+                                    Label("Edit", systemImage: "pencil")
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(Color.blue.opacity(0.1))
+                                        .foregroundColor(.blue)
+                                        .cornerRadius(10)
+                                }
+                                .disabled(storyGenerator.isGenerating)
+
+                                Button(action: toggleSpeech) {
+                                    Label(
+                                        speechSynthesizer.isSpeaking ? "Pause" : "Read Story",
+                                        systemImage: speechSynthesizer.isSpeaking ? "pause.fill" : "play.fill"
+                                    )
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.blue.opacity(0.1))
-                                    .foregroundColor(.blue)
+                                    .background(Color.green.opacity(0.1))
+                                    .foregroundColor(.green)
                                     .cornerRadius(10)
+                                }
+                                .disabled(storyGenerator.generatedStory?.content == nil)
                             }
-                            .disabled(storyGenerator.isGenerating)
 
-                            Button(action: toggleSpeech) {
-                                Label(
-                                    speechSynthesizer.isSpeaking ? "Pause" : "Read Story",
-                                    systemImage: speechSynthesizer.isSpeaking ? "pause.fill" : "play.fill"
-                                )
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.green.opacity(0.1))
-                                .foregroundColor(.green)
-                                .cornerRadius(10)
+                            // Save button
+                            Button(action: saveStory) {
+                                Label("Save Story", systemImage: "heart.fill")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.purple.opacity(0.1))
+                                    .foregroundColor(.purple)
+                                    .cornerRadius(10)
                             }
                             .disabled(storyGenerator.generatedStory?.content == nil)
                         }
-
-                        Button(action: saveStory) {
-                            Label("Save Story", systemImage: "heart.fill")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.purple.opacity(0.1))
-                                .foregroundColor(.purple)
-                                .cornerRadius(10)
-                        }
-                        .disabled(storyGenerator.generatedStory?.content == nil)
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
+                    .frame(maxWidth: .infinity) // Use full width for controls on iPad
+                    Spacer()
                 }
-                .frame(maxWidth: .infinity)
-                Spacer()
+                .padding(.bottom)
+                .background(Color(UIColor.systemGroupedBackground))
             }
-            .padding(.bottom)
-            .background(Color(UIColor.systemGroupedBackground))
         }
-    }
 
     private func modifyStory() {
         Task {
@@ -318,6 +353,7 @@ struct StoryView: View {
               let emoji = partialStory.emoji,
               let content = partialStory.content else { return }
 
+        // Create a complete story from the partial one
         let completeStory = GeneratedStory(
             title: title,
             emoji: emoji,

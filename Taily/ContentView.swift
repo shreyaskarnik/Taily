@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  Taily
+//  Dozzi
 //
 //  Created by Shreyas Karnik on 7/6/25.
 //
@@ -78,7 +78,7 @@ struct Sidebar: View {
                 Label("Settings", systemImage: "gear")
             }
         }
-        .navigationTitle("Taily")
+        .navigationTitle("Dozzi")
         .navigationBarTitleDisplayMode(.large)
     }
 }
@@ -99,7 +99,7 @@ struct WelcomeView: View {
                 .foregroundColor(.blue)
             
             VStack(spacing: 16) {
-                Text("Welcome to Taily")
+                Text("Welcome to Dozzi")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 
