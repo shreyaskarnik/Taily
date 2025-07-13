@@ -703,6 +703,46 @@ struct StoryView: View {
                                         RoundedRectangle(cornerRadius: 24, style: .continuous)
                                             .stroke(.white.opacity(0.2), lineWidth: 1)
                                     )
+                                } else if storyGenerator.isGenerating {
+                                    // Show loading while story generation is still in progress
+                                    VStack(spacing: 20) {
+                                        LottieDozziView(
+                                            currentAnimation: .constant(.magic),
+                                            mood: .constant(.magical)
+                                        )
+                                        .frame(width: 80, height: 80)
+                                        
+                                        Text("Creating your story's illustration...")
+                                            .font(.title3.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 300)
+                                    .background(
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                                .fill(.regularMaterial)
+                                                .opacity(0.7)
+                                            
+                                            LinearGradient(
+                                                colors: [.purple.opacity(0.1), .blue.opacity(0.08)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                            
+                                            LinearGradient(
+                                                colors: [.white.opacity(0.2), .clear],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                            .blendMode(.overlay)
+                                        }
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                                    )
                                 } else {
                                     // Beautiful placeholder for completed stories
                                     VStack(spacing: 24) {
