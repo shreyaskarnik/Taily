@@ -1,4 +1,5 @@
 import SwiftUI
+import Lottie
 
 struct ChatStyleStoryInputView: View {
     @StateObject private var storyGenerator = StoryGenerator()
@@ -7,11 +8,12 @@ struct ChatStyleStoryInputView: View {
     @State private var selectedLength = StoryLength.short
     @State private var showingStoryView = false
     @State private var showingProfilePicker = false
+    @State private var showingProfileEditor = false
     @State private var mentionedProfile: ChildProfile?
     @State private var cursorPosition = 0
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Check if profiles exist, show creation prompt if empty
                 if profileManager.isEmpty {
@@ -23,14 +25,16 @@ struct ChatStyleStoryInputView: View {
             .navigationBarHidden(true)
             .animation(.easeInOut(duration: 0.3), value: showingProfilePicker)
             .animation(.easeInOut(duration: 0.3), value: inputText.isEmpty)
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
-        .navigationDestination(isPresented: $showingStoryView) {
-            if let profile = mentionedProfile {
-                StoryView(
-                    storyGenerator: storyGenerator,
-                    parameters: createStoryParameters(for: profile)
-                )
+            .navigationDestination(isPresented: $showingStoryView) {
+                if let profile = mentionedProfile {
+                    StoryView(
+                        storyGenerator: storyGenerator,
+                        parameters: createStoryParameters(for: profile)
+                    )
+                }
+            }
+            .sheet(isPresented: $showingProfileEditor) {
+                ProfileEditorView(profile: nil, profileManager: profileManager)
             }
         }
     }
@@ -60,7 +64,9 @@ struct ChatStyleStoryInputView: View {
                 }
 
                 // Create profile button
-                NavigationLink(destination: ChildProfileView(profileManager: profileManager)) {
+                Button(action: {
+                    showingProfileEditor = true
+                }) {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                         Text("Create Child Profile")
@@ -86,15 +92,23 @@ struct ChatStyleStoryInputView: View {
             ScrollView {
                     VStack(spacing: 32) {
                         // Welcome header
-                        VStack(spacing: 16) {
-                            Text("✨ Dozzi")
-                                .font(.system(size: 42, weight: .bold, design: .rounded))
-                                .foregroundColor(.primary)
+                        VStack(spacing: 20) {
+                            // Animated Dozzi character
+                            LottieView(animation: .named("magical_dog"))
+                                .playing(loopMode: .loop)
+                                .animationSpeed(0.8)
+                                .frame(width: 120, height: 120)
+                            
+                            VStack(spacing: 8) {
+                                Text("Dozzi")
+                                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
 
-                            Text("Your magical bedtime story companion")
-                                .font(.title3)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
+                                Text("Your magical bedtime story companion")
+                                    .font(.title3)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
                         }
                         .padding(.top, 40)
 

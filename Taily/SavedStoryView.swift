@@ -13,19 +13,6 @@ struct SavedStoryView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Debug: Show what story data we have
-                if currentStory.title.isEmpty || currentStory.content.isEmpty {
-                    VStack {
-                        Text("Debug: Story data issue")
-                            .foregroundColor(.red)
-                        Text("Title: '\(currentStory.title)'")
-                        Text("Content length: \(currentStory.content.count)")
-                        Text("SavedStory title: '\(savedStory.story.title)'")
-                        Text("SavedStory content length: \(savedStory.story.content.count)")
-                    }
-                    .padding()
-                }
-                
                 // Story content
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
@@ -55,11 +42,11 @@ struct SavedStoryView: View {
                             HStack {
                                 Text(currentStory.emoji)
                                     .font(.system(size: 40))
-                                HighlightedText(
-                                    text: currentStory.title,
-                                    highlightRange: speechSynthesizer.isSpeakingTitle ? speechSynthesizer.currentWordRange : nil,
+                                MarkdownText(
+                                    currentStory.title,
                                     font: .title,
-                                    lineSpacing: 0
+                                    lineSpacing: 0,
+                                    highlightRange: speechSynthesizer.isSpeakingTitle ? speechSynthesizer.currentWordRange : nil
                                 )
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
@@ -67,11 +54,11 @@ struct SavedStoryView: View {
                             .padding(.horizontal)
                             
                             // Story text with highlighting
-                            HighlightedText(
-                                text: currentStory.content,
-                                highlightRange: speechSynthesizer.isSpeakingContent ? speechSynthesizer.currentWordRange : nil,
+                            MarkdownText(
+                                currentStory.content,
                                 font: .body,
-                                lineSpacing: 6
+                                lineSpacing: 6,
+                                highlightRange: speechSynthesizer.isSpeakingContent ? speechSynthesizer.currentWordRange : nil
                             )
                             .padding(.horizontal)
                             
@@ -88,8 +75,10 @@ struct SavedStoryView: View {
                                             .foregroundColor(.secondary)
                                     }
                                     
-                                    ProgressView(value: speechSynthesizer.speechProgress)
-                                        .tint(.blue)
+                                    DozziProgressView(
+                                        value: speechSynthesizer.speechProgress, 
+                                        message: "Reading story..."
+                                    )
                                 }
                                 .padding(.horizontal)
                                 .padding(.top, 8)
@@ -222,20 +211,8 @@ struct SavedStoryView: View {
     }
     
     private var currentStory: GeneratedStory {
-        // Convert partial story to complete story if available, otherwise use saved story
-        if let partialStory = storyGenerator.generatedStory,
-           let title = partialStory.title,
-           let emoji = partialStory.emoji,
-           let content = partialStory.content {
-            return GeneratedStory(
-                title: title,
-                emoji: emoji,
-                content: content,
-                ssmlContent: partialStory.ssmlContent,
-                storyIllustration: partialStory.storyIllustration
-            )
-        }
-        return savedStory.story
+        // Use modified story if available, otherwise use saved story
+        return storyGenerator.currentStory ?? savedStory.story
     }
     
     private func modifyStory() {
@@ -243,14 +220,11 @@ struct SavedStoryView: View {
             await storyGenerator.regenerateStory(with: savedStory.parameters, modification: modificationText)
             
             // If modification was successful, save the updated story
-            if let partialStory = storyGenerator.generatedStory,
-               let title = partialStory.title,
-               let emoji = partialStory.emoji,
-               let content = partialStory.content {
+            if let partialStory = storyGenerator.currentStory {
                 let completeStory = GeneratedStory(
-                    title: title,
-                    emoji: emoji,
-                    content: content,
+                    title: partialStory.title,
+                    emoji: partialStory.emoji,
+                    content: partialStory.content,
                     ssmlContent: partialStory.ssmlContent,
                     storyIllustration: partialStory.storyIllustration
                 )

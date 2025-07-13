@@ -9,19 +9,11 @@ import SwiftUI
 import AVFoundation
 
 struct ContentView: View {
-    @Environment(\.horizontalSizeClass) var horizontalSizeClass
-    @Environment(\.verticalSizeClass) var verticalSizeClass
+    // Simplified: No need for size classes or sidebar state anymore
     
     var body: some View {
-        Group {
-            if horizontalSizeClass == .regular && verticalSizeClass == .regular {
-                // iPad layout
-                iPadLayout
-            } else {
-                // iPhone layout
-                iPhoneLayout
-            }
-        }
+        // Use the same TabView layout for both iPhone and iPad
+        iPhoneLayout
     }
     
     private var iPhoneLayout: some View {
@@ -46,40 +38,35 @@ struct ContentView: View {
                     Label("Settings", systemImage: "gear")
                 }
         }
-    }
-    
-    private var iPadLayout: some View {
-        NavigationView {
-            Sidebar()
+        .accentColor(.blue)
+        .onAppear {
+            // Liquid Glass tab bar styling for iOS 26+
+            let appearance = UITabBarAppearance()
             
-            // Default detail view
-            WelcomeView()
+            // Use translucent material background
+            appearance.configureWithTransparentBackground()
+            appearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.8)
+            
+            // Enhanced glass effect with subtle materials
+            appearance.backgroundEffect = UIBlurEffect(style: .systemMaterial)
+            appearance.shadowColor = UIColor.black.withAlphaComponent(0.1)
+            appearance.shadowImage = UIImage()
+            
+            // Modern icon styling
+            appearance.stackedLayoutAppearance.normal.iconColor = UIColor.secondaryLabel
+            appearance.stackedLayoutAppearance.selected.iconColor = UIColor.systemBlue
+            appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
+                .foregroundColor: UIColor.secondaryLabel,
+                .font: UIFont.systemFont(ofSize: 10, weight: .medium)
+            ]
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
+                .foregroundColor: UIColor.systemBlue,
+                .font: UIFont.systemFont(ofSize: 10, weight: .semibold)
+            ]
+            
+            UITabBar.appearance().standardAppearance = appearance
+            UITabBar.appearance().scrollEdgeAppearance = appearance
         }
-        .navigationViewStyle(DoubleColumnNavigationViewStyle())
-    }
-}
-
-struct Sidebar: View {
-    var body: some View {
-        List {
-            NavigationLink(destination: ChatStyleStoryInputView()) {
-                Label("Create Story", systemImage: "book.fill")
-            }
-            
-            NavigationLink(destination: ChildProfilesTabView()) {
-                Label("Child Profiles", systemImage: "person.2.fill")
-            }
-            
-            NavigationLink(destination: StoryLibraryView()) {
-                Label("Story Library", systemImage: "books.vertical.fill")
-            }
-            
-            NavigationLink(destination: SettingsView()) {
-                Label("Settings", systemImage: "gear")
-            }
-        }
-        .navigationTitle("Dozzi")
-        .navigationBarTitleDisplayMode(.large)
     }
 }
 
@@ -91,88 +78,15 @@ struct ChildProfilesTabView: View {
     }
 }
 
-struct WelcomeView: View {
-    var body: some View {
-        VStack(spacing: 30) {
-            Image(systemName: "moon.stars.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.blue)
-            
-            VStack(spacing: 16) {
-                Text("Welcome to Dozzi")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                
-                Text("Create magical bedtime stories for your little ones")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            
-            VStack(spacing: 12) {
-                FeatureRow(
-                    icon: "sparkles",
-                    title: "AI-Powered Stories",
-                    description: "Personalized stories generated just for your child"
-                )
-                
-                FeatureRow(
-                    icon: "speaker.wave.2.fill",
-                    title: "Read Aloud",
-                    description: "High-quality text-to-speech narration"
-                )
-                
-                FeatureRow(
-                    icon: "heart.fill",
-                    title: "Values-Based",
-                    description: "Stories that teach kindness, bravery, and more"
-                )
-            }
-            
-            Spacer()
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
-    }
-}
-
-struct FeatureRow: View {
-    let icon: String
-    let title: String
-    let description: String
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(.blue)
-                .frame(width: 30)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-    }
-}
 
 struct StoryLibraryView: View {
     @StateObject private var libraryManager = StoryLibraryManager()
+    @StateObject private var storyGenerator = StoryGenerator()
     @State private var showingStoryView = false
     @State private var selectedSavedStory: SavedStory?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Group {
                 if libraryManager.isEmpty {
                     emptyLibraryView
@@ -182,16 +96,19 @@ struct StoryLibraryView: View {
             }
             .navigationTitle("Story Library")
             .navigationBarTitleDisplayMode(.large)
-            .sheet(isPresented: $showingStoryView) {
+            .navigationDestination(isPresented: $showingStoryView) {
                 if let savedStory = selectedSavedStory {
-                    SavedStoryView(
-                        savedStory: savedStory,
-                        libraryManager: libraryManager
+                    StoryView(
+                        storyGenerator: storyGenerator,
+                        parameters: savedStory.parameters
                     )
+                    .onAppear {
+                        // Load the saved story into the generator
+                        loadSavedStory(savedStory)
+                    }
                 }
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     private var emptyLibraryView: some View {
@@ -232,6 +149,12 @@ struct StoryLibraryView: View {
             .onDelete(perform: libraryManager.deleteStory)
         }
         .listStyle(PlainListStyle())
+    }
+    
+    private func loadSavedStory(_ savedStory: SavedStory) {
+        // Clear any existing generated story and set the saved story
+        storyGenerator.generatedStory = nil
+        storyGenerator.savedStory = savedStory.story
     }
 }
 

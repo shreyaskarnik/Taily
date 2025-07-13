@@ -1,4 +1,5 @@
 import SwiftUI
+import Lottie
 
 struct StoryInputView: View {
     @StateObject private var storyGenerator = StoryGenerator()
@@ -258,9 +259,10 @@ struct StoryInputView: View {
                     Button(action: generateStory) {
                         HStack(spacing: 12) {
                             if storyGenerator.isGenerating {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .tint(.white)
+                                LottieView(animation: .named("curious_dog"))
+                                    .playing(loopMode: .loop)
+                                    .animationSpeed(1.2)
+                                    .frame(width: 20, height: 20)
                             } else {
                                 Text("📚")
                                     .font(.title2)

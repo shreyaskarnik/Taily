@@ -5,21 +5,33 @@ import Foundation
     import FoundationModels
 #endif
 
+#if canImport(FoundationModels)
 @Generable
+#endif
 struct GeneratedStory: Codable {
+    #if canImport(FoundationModels)
     @Guide(description: "A creative, engaging title for the bedtime story that captures the main theme")
+    #endif
     let title: String
 
+    #if canImport(FoundationModels)
     @Guide(description: "A single emoji that represents the story's main theme or setting")
+    #endif
     let emoji: String
 
+    #if canImport(FoundationModels)
     @Guide(description: "The complete bedtime story content in PLAIN TEXT with NO markup or tags - this will be displayed to users in the app interface")
+    #endif
     let content: String
 
+    #if canImport(FoundationModels)
     @Guide(description: "A separate SSML-enhanced version of the story content with Speech Synthesis Markup Language tags for text-to-speech. This should be the same story as 'content' but enhanced with SSML tags like <break>, <emphasis>, <prosody>. Do NOT include SSML tags in the 'content' field.")
+    #endif
     let ssmlContent: String?
 
+    #if canImport(FoundationModels)
     @Guide(description: "A companion illustration that captures the main scene or character from the story in a colorful, whimsical, child-friendly style")
+    #endif
     let storyIllustration: GenerableImage?
 
     init(title: String, emoji: String, content: String, ssmlContent: String? = nil, storyIllustration: GenerableImage? = nil) {
@@ -72,12 +84,8 @@ struct GeneratedStory: Codable {
         content = Self.stripSSMLTags(from: rawContent)
         // ssmlContent is optional and may not exist in older saved stories
         ssmlContent = try container.decodeIfPresent(String.self, forKey: .ssmlContent)
-        // storyIllustration may not exist in older saved stories
-        if let imageDescription = try container.decodeIfPresent(String.self, forKey: .storyIllustrationDescription) {
-            storyIllustration = GenerableImage(imageDescription: imageDescription)
-        } else {
-            storyIllustration = nil
-        }
+        // storyIllustration may not exist in older saved stories - will be created later if needed
+        storyIllustration = nil
     }
 
     // Custom encoding to handle GenerableImage
@@ -234,7 +242,30 @@ enum StoryLength: String, CaseIterable, Codable {
     class StoryGenerator: ObservableObject {
         @Published var isGenerating = false
         @Published var generatedStory: GeneratedStory.PartiallyGenerated?
+        @Published var savedStory: GeneratedStory?
         @Published var errorMessage: String?
+
+        // Computed property to provide a consistent interface for UI
+        var currentStory: GeneratedStory? {
+            // Return saved story if available, otherwise try to construct from partial generation
+            if let saved = savedStory {
+                return saved
+            }
+            
+            guard let partial = generatedStory,
+                  let title = partial.title,
+                  let emoji = partial.emoji,
+                  let content = partial.content else {
+                return nil
+            }
+            return GeneratedStory(
+                title: title,
+                emoji: emoji,
+                content: content,
+                ssmlContent: partial.ssmlContent,
+                storyIllustration: partial.storyIllustration
+            )
+        }
 
         private let model = SystemLanguageModel.default
         private var session: LanguageModelSession?
@@ -306,7 +337,12 @@ enum StoryLength: String, CaseIterable, Codable {
 
                 // Process each partial update
                 for try await partialStory in stream {
+                    #if canImport(FoundationModels)
                     generatedStory = partialStory
+                    #else
+                    // Fallback for non-iOS 26 builds
+                    generatedStory = nil
+                    #endif
                 }
 
             } catch {
@@ -489,7 +525,12 @@ enum StoryLength: String, CaseIterable, Codable {
 
                 // Process each partial update
                 for try await partialStory in stream {
+                    #if canImport(FoundationModels)
                     generatedStory = partialStory
+                    #else
+                    // Fallback for non-iOS 26 builds
+                    generatedStory = nil
+                    #endif
                 }
 
             } catch {
@@ -505,8 +546,14 @@ enum StoryLength: String, CaseIterable, Codable {
     @MainActor
     class StoryGenerator: ObservableObject {
         @Published var isGenerating = false
-        @Published var generatedStory: GeneratedStory.PartiallyGenerated?
+        @Published var generatedStory: GeneratedStory?
+        @Published var savedStory: GeneratedStory?
         @Published var errorMessage: String?
+
+        // Computed property to provide a consistent interface for UI
+        var currentStory: GeneratedStory? {
+            return savedStory ?? generatedStory
+        }
 
         var isModelAvailable: Bool { false }
         var modelAvailabilityReason: String {
