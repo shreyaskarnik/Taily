@@ -8,6 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		B10DA2FC2E2221AE00048CC7 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = B10DA2FB2E2221AE00048CC7 /* Lottie */; };
+		B13B15982E247945003F2682 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = B13B15972E247945003F2682 /* FirebaseCore */; };
+		B13B159A2E247975003F2682 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = B13B15992E247975003F2682 /* FirebaseAuth */; };
+		B13B159C2E247975003F2682 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = B13B159B2E247975003F2682 /* FirebaseDatabase */; };
+		B13B159F2E247C8F003F2682 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B13B159E2E247C8F003F2682 /* GoogleSignInSwift */; };
+		B13B15A72E249BDE003F2682 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = B13B15A62E249BDE003F2682 /* FirebaseAppCheck */; };
+		B13B15A92E249C1A003F2682 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = B13B15A82E249C1A003F2682 /* FirebaseFunctions */; };
+		B13B16A12E24A073003F2682 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B13B16A02E24A073003F2682 /* FirebaseFirestore */; };
+		B13B16B22E24B574003F2682 /* Dozzi.storekit in Resources */ = {isa = PBXBuildFile; fileRef = B13B16B12E24B574003F2682 /* Dozzi.storekit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,6 +49,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		B13B15A42E248C2D003F2682 /* Dozzi-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Dozzi-Info.plist"; sourceTree = "<group>"; };
+		B13B15A52E24904A003F2682 /* Dozzi.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Dozzi.entitlements; sourceTree = "<group>"; };
+		B13B16B12E24B574003F2682 /* Dozzi.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Dozzi.storekit; sourceTree = "<group>"; };
 		B1A4ACDA2E1B729A00E73CA4 /* Dozzi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dozzi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1A4ACE72E1B729B00E73CA4 /* TailyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TailyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1A4ACF12E1B729B00E73CA4 /* TailyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TailyUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -69,6 +80,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B13B159F2E247C8F003F2682 /* GoogleSignInSwift in Frameworks */,
+				B13B15982E247945003F2682 /* FirebaseCore in Frameworks */,
+				B13B159A2E247975003F2682 /* FirebaseAuth in Frameworks */,
+				B13B159C2E247975003F2682 /* FirebaseDatabase in Frameworks */,
+				B13B15A72E249BDE003F2682 /* FirebaseAppCheck in Frameworks */,
+				B13B16A12E24A073003F2682 /* FirebaseFirestore in Frameworks */,
+				B13B15A92E249C1A003F2682 /* FirebaseFunctions in Frameworks */,
 				B10DA2FC2E2221AE00048CC7 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -93,6 +111,9 @@
 		B1A4ACD12E1B729900E73CA4 = {
 			isa = PBXGroup;
 			children = (
+				B13B16B12E24B574003F2682 /* Dozzi.storekit */,
+				B13B15A52E24904A003F2682 /* Dozzi.entitlements */,
+				B13B15A42E248C2D003F2682 /* Dozzi-Info.plist */,
 				B1A4ACDC2E1B729A00E73CA4 /* Taily */,
 				B1A4ACEA2E1B729B00E73CA4 /* TailyTests */,
 				B1A4ACF42E1B729B00E73CA4 /* TailyUITests */,
@@ -132,6 +153,13 @@
 			name = Dozzi;
 			packageProductDependencies = (
 				B10DA2FB2E2221AE00048CC7 /* Lottie */,
+				B13B15972E247945003F2682 /* FirebaseCore */,
+				B13B15992E247975003F2682 /* FirebaseAuth */,
+				B13B159B2E247975003F2682 /* FirebaseDatabase */,
+				B13B159E2E247C8F003F2682 /* GoogleSignInSwift */,
+				B13B15A62E249BDE003F2682 /* FirebaseAppCheck */,
+				B13B15A82E249C1A003F2682 /* FirebaseFunctions */,
+				B13B16A02E24A073003F2682 /* FirebaseFirestore */,
 			);
 			productName = Taily;
 			productReference = B1A4ACDA2E1B729A00E73CA4 /* Dozzi.app */;
@@ -217,6 +245,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B10DA2FA2E2221AE00048CC7 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+				B13B15962E247945003F2682 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				B13B159D2E247C8F003F2682 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B1A4ACDB2E1B729A00E73CA4 /* Products */;
@@ -235,6 +265,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B13B16B22E24B574003F2682 /* Dozzi.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -418,11 +449,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Dozzi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = NG3SG4T8TT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Dozzi-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Dozzi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -452,11 +485,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Dozzi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = NG3SG4T8TT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Dozzi-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Dozzi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -611,6 +646,22 @@
 				minimumVersion = 4.5.2;
 			};
 		};
+		B13B15962E247945003F2682 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.15.0;
+			};
+		};
+		B13B159D2E247C8F003F2682 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -618,6 +669,41 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B10DA2FA2E2221AE00048CC7 /* XCRemoteSwiftPackageReference "lottie-ios" */;
 			productName = Lottie;
+		};
+		B13B15972E247945003F2682 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B13B15962E247945003F2682 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		B13B15992E247975003F2682 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B13B15962E247945003F2682 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		B13B159B2E247975003F2682 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B13B15962E247945003F2682 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		B13B159E2E247C8F003F2682 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B13B159D2E247C8F003F2682 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+		B13B15A62E249BDE003F2682 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B13B15962E247945003F2682 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+		B13B15A82E249C1A003F2682 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B13B15962E247945003F2682 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		B13B16A02E24A073003F2682 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B13B15962E247945003F2682 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

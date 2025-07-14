@@ -4,7 +4,9 @@ import Lottie
 struct StoryInputView: View {
     @StateObject private var storyGenerator = StoryGenerator()
     @StateObject private var profileManager = ChildProfileManager()
+    @StateObject private var subscriptionManager = SubscriptionManager()
     @State private var useProfile = true
+    @State private var showPaywall = false
     @State private var childName = ""
     @State private var selectedAgeGroup = AgeGroup.preschool
     @State private var selectedGender: ChildGender? = nil
@@ -37,6 +39,9 @@ struct StoryInputView: View {
                         RoundedRectangle(cornerRadius: 16)
                             .fill(Color.purple.opacity(0.1))
                     )
+                    
+                    // Subscription Status
+                    SubscriptionStatusView(status: subscriptionManager.subscriptionStatus)
 
                     // Profile Selection Section
                     if !profileManager.isEmpty {
@@ -313,6 +318,9 @@ struct StoryInputView: View {
             .sheet(isPresented: $showingProfileManager) {
                 ChildProfileView(profileManager: profileManager)
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView(subscriptionManager: subscriptionManager)
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
@@ -365,6 +373,18 @@ struct StoryInputView: View {
     }
 
     private func generateStory() {
+        // Check subscription status first
+        guard subscriptionManager.canCreateStory() else {
+            showPaywall = true
+            return
+        }
+        
+        // Use a story credit (for free users)
+        guard subscriptionManager.useStoryCredit() else {
+            showPaywall = true
+            return
+        }
+        
         // Immediately show the story view when generation starts
         showingStoryView = true
 

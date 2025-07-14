@@ -24,10 +24,8 @@ struct GeneratedStory: Codable {
     #endif
     let content: String
 
-    #if canImport(FoundationModels)
-    @Guide(description: "A separate SSML-enhanced version of the story content with Speech Synthesis Markup Language tags for text-to-speech. This should be the same story as 'content' but enhanced with SSML tags like <break>, <emphasis>, <prosody>. Do NOT include SSML tags in the 'content' field.")
-    #endif
-    let ssmlContent: String?
+    // Removed SSML complexity - keep bedtime stories simple and natural
+    let ssmlContent: String? = nil
 
     #if canImport(FoundationModels)
     @Guide(description: "A companion illustration that captures the main scene or character from the story in a colorful, whimsical, child-friendly style")
@@ -39,7 +37,7 @@ struct GeneratedStory: Codable {
         self.emoji = emoji
         // Strip any SSML tags from content to ensure it's plain text
         self.content = Self.stripSSMLTags(from: content)
-        self.ssmlContent = ssmlContent
+        // ssmlContent removed for simplicity
         self.storyIllustration = storyIllustration
     }
 
@@ -82,8 +80,7 @@ struct GeneratedStory: Codable {
         let rawContent = try container.decode(String.self, forKey: .content)
         // Strip any SSML tags that might have been saved in content
         content = Self.stripSSMLTags(from: rawContent)
-        // ssmlContent is optional and may not exist in older saved stories
-        ssmlContent = try container.decodeIfPresent(String.self, forKey: .ssmlContent)
+        // ssmlContent removed for simplicity
         // storyIllustration may not exist in older saved stories - will be created later if needed
         storyIllustration = nil
     }
@@ -94,7 +91,7 @@ struct GeneratedStory: Codable {
         try container.encode(title, forKey: .title)
         try container.encode(emoji, forKey: .emoji)
         try container.encode(content, forKey: .content)
-        try container.encodeIfPresent(ssmlContent, forKey: .ssmlContent)
+        // ssmlContent removed for simplicity
         // Encode the image description if available
         try container.encodeIfPresent(storyIllustration?.imageDescription, forKey: .storyIllustrationDescription)
     }
@@ -262,7 +259,6 @@ enum StoryLength: String, CaseIterable, Codable {
                 title: title,
                 emoji: emoji,
                 content: content,
-                ssmlContent: partial.ssmlContent,
                 storyIllustration: partial.storyIllustration
             )
         }

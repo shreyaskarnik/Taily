@@ -6,14 +6,122 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 import AVFoundation
 
 struct ContentView: View {
-    // Simplified: No need for size classes or sidebar state anymore
+    @StateObject private var authService = AuthService()
+    @State private var showingLogin = false
     
     var body: some View {
-        // Use the same TabView layout for both iPhone and iPad
-        iPhoneLayout
+        Group {
+            if authService.isAuthenticated {
+                // Use the same TabView layout for both iPhone and iPad
+                iPhoneLayout
+                    .overlay(
+                        // Sign out button overlay for authenticated users
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Menu {
+                                    Button("Sign Out", role: .destructive) {
+                                        Task {
+                                            await authService.signOut()
+                                        }
+                                    }
+                                    
+                                    #if DEBUG
+                                    Button("Delete Account (Full)", role: .destructive) {
+                                        Task {
+                                            await authService.deleteAccount()
+                                        }
+                                    }
+                                    
+                                    Button("Delete Account (Firebase Only)", role: .destructive) {
+                                        Task {
+                                            await authService.deleteFirebaseUserOnly()
+                                        }
+                                    }
+                                    
+                                    Divider()
+                                    #endif
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        if let displayName = authService.currentUser?.displayName, !displayName.isEmpty {
+                                            Text("Signed in as:")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                            Text(displayName)
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                        }
+                                        
+                                        if let userEmail = authService.currentUser?.email {
+                                            Text(userEmail)
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        } else {
+                                            Text("No email available")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.purple)
+                                        .padding(12)
+                                        .background(Color.white.opacity(0.9))
+                                        .clipShape(Circle())
+                                        .shadow(color: .purple.opacity(0.3), radius: 4, x: 0, y: 2)
+                                }
+                                .padding(.trailing, 20)
+                                .padding(.top, 50) // Below status bar
+                            }
+                            Spacer()
+                        }
+                    )
+            } else {
+                // Show login or continue as guest
+                iPhoneLayout
+                    .overlay(
+                        // Login button overlay for guest users
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Button(action: {
+                                    showingLogin = true
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "person.circle.fill")
+                                        Text("Sign In")
+                                    }
+                                    .font(.callout.weight(.medium))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [.purple, .blue],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(20)
+                                    .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
+                                }
+                                .padding(.trailing, 20)
+                                .padding(.bottom, 100) // Above tab bar
+                            }
+                        }
+                    )
+            }
+        }
+        .sheet(isPresented: $showingLogin) {
+            LoginView()
+        }
+        .environmentObject(authService)
     }
     
     private var iPhoneLayout: some View {
@@ -227,10 +335,34 @@ struct StoryLibraryRow: View {
 
 struct SettingsView: View {
     @StateObject private var speechSynthesizer = SpeechSynthesizer()
+    @StateObject private var subscriptionManager = SubscriptionManager()
+    @AppStorage("useCloudTTS") private var useCloudTTS = false
+    @AppStorage("selectedCloudVoiceName") private var selectedCloudVoiceName = ""
     
     var body: some View {
         NavigationView {
             Form {
+                #if DEBUG
+                Section(header: Text("🧪 Development Settings")) {
+                    Toggle(isOn: $useCloudTTS) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Use Cloud TTS")
+                                .font(.body)
+                            Text(useCloudTTS ? "Google Cloud voices (costs $$)" : "iOS local voices (free)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .tint(useCloudTTS ? .blue : .green)
+                    
+                    if useCloudTTS {
+                        Label("Cost: ~$0.008 per story", systemImage: "dollarsign.circle")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+                #endif
+                
                 Section(header: Text("Speech Settings")) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Speech Rate")
@@ -245,14 +377,60 @@ struct SettingsView: View {
                         }
                     }
                     
-                    NavigationLink(destination: VoiceSelectionView(speechSynthesizer: speechSynthesizer)) {
-                        HStack {
-                            Text("Voice")
-                            Spacer()
-                            Text(speechSynthesizer.selectedVoice?.name ?? "Default")
-                                .foregroundColor(.secondary)
+                    // Premium voice selection
+                    if subscriptionManager.canUsePremiumVoices() {
+                        NavigationLink(destination: CloudVoiceSelectionWrapper(selectedVoiceName: $selectedCloudVoiceName)) {
+                            HStack {
+                                Text("Premium Voice")
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text(selectedCloudVoiceName.isEmpty ? "Auto" : selectedCloudVoiceName)
+                                        .foregroundColor(.secondary)
+                                    Text("PREMIUM")
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                    } else {
+                        // Local voice selection for free users
+                        NavigationLink(destination: LocalVoiceSelectionView(speechSynthesizer: speechSynthesizer)) {
+                            HStack {
+                                Text("Voice")
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text(speechSynthesizer.selectedVoice?.name ?? "Default")
+                                        .foregroundColor(.secondary)
+                                    Text("FREE")
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.green)
+                                }
+                            }
                         }
                     }
+                }
+                
+                // Subscription status section
+                Section(header: Text("Subscription")) {
+                    SubscriptionStatusView(status: subscriptionManager.subscriptionStatus)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                    
+                    if !subscriptionManager.subscriptionStatus.isPremium {
+                        NavigationLink("Upgrade to Premium") {
+                            PaywallView(subscriptionManager: subscriptionManager)
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    
+                    Button("Restore Purchases") {
+                        Task {
+                            await subscriptionManager.restorePurchases()
+                        }
+                    }
+                    .foregroundColor(.secondary)
                 }
                 
                 Section(header: Text("Story Preferences")) {
@@ -290,7 +468,7 @@ struct SettingsView: View {
     }
 }
 
-struct VoiceSelectionView: View {
+struct LocalVoiceSelectionView: View {
     @ObservedObject var speechSynthesizer: SpeechSynthesizer
     @Environment(\.presentationMode) var presentationMode
     
@@ -364,6 +542,18 @@ struct VoiceRow: View {
         .onTapGesture {
             onSelect()
         }
+    }
+}
+
+struct CloudVoiceSelectionWrapper: View {
+    @Binding var selectedVoiceName: String
+    
+    var body: some View {
+        VoiceSelectionView(childAge: 5) { voice in
+            selectedVoiceName = voice.name ?? ""
+        }
+        .navigationTitle("Cloud Voices")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

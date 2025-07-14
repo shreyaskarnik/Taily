@@ -1,14 +1,27 @@
 import SwiftUI
 import Lottie
+import AVFoundation
 
 struct StoryView: View {
     @ObservedObject var storyGenerator: StoryGenerator
     let parameters: StoryParameters
-    @StateObject private var speechSynthesizer = SpeechSynthesizer()
+    @StateObject private var ttsService = TTSService()
+    @StateObject private var firestoreService = FirestoreService()
     @StateObject private var libraryManager = StoryLibraryManager()
+    @StateObject private var speechSynthesizer = SpeechSynthesizer() // Keep for local TTS fallback
+    @StateObject private var subscriptionManager = SubscriptionManager()
     @State private var modificationText = ""
     @State private var showingModificationField = false
     @State private var showingSaveAlert = false
+    @State private var audioData: Data?
+    @State private var isPlayingAudio = false
+    @State private var audioPlayer: AVAudioPlayer?
+    @State private var wordHighlightTimer: Timer?
+    @State private var currentWordIndex: Int = 0
+    @State private var storyWords: [String] = []
+    @State private var isPreparingCloudAudio = false
+    @AppStorage("useCloudTTS") private var useCloudTTS = false // Debug setting
+    @AppStorage("selectedCloudVoiceName") private var selectedCloudVoiceName = ""
     
     // Environment for responsive design
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -62,6 +75,47 @@ struct StoryView: View {
         return 600
         #endif
     }
+    
+    // Computed property to check if any TTS is currently speaking
+    private var isCurrentlySpeaking: Bool {
+        if subscriptionManager.canUseCloudTTS() {
+            return isPlayingAudio
+        } else {
+            return speechSynthesizer.isSpeaking
+        }
+    }
+    
+    // Button label based on subscription status
+    private var buttonLabel: String {
+        if subscriptionManager.canUseCloudTTS() {
+            switch subscriptionManager.subscriptionStatus {
+            case .unlimited:
+                return "Read Story (Premium Voices)"
+            case .free(let remaining):
+                return "Read Story (Premium Trial \(remaining)/2)"
+            }
+        } else {
+            return "Read Story (Upgrade for Premium)"
+        }
+    }
+    
+    // Button background color
+    private var buttonBackgroundColor: Color {
+        if subscriptionManager.canUseCloudTTS() {
+            return Color.blue.opacity(0.1)
+        } else {
+            return Color.orange.opacity(0.1) // Upgrade prompt
+        }
+    }
+    
+    // Button foreground color
+    private var buttonForegroundColor: Color {
+        if subscriptionManager.canUseCloudTTS() {
+            return .blue
+        } else {
+            return .orange // Upgrade prompt
+        }
+    }
 
     var body: some View {
         Group {
@@ -77,7 +131,13 @@ struct StoryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)
         .onDisappear {
+            // Stop any active TTS
             speechSynthesizer.stopSpeaking()
+            audioPlayer?.stop()
+            audioPlayer = nil
+            isPlayingAudio = false
+            audioData = nil
+            stopWordHighlighting()
         }
         .alert("Story Saved!", isPresented: $showingSaveAlert) {
             Button("OK") { }
@@ -297,7 +357,7 @@ struct StoryView: View {
 
                                 HStack {
                                     // Add small Dozzi character during story reading
-                                    if speechSynthesizer.isSpeaking {
+                                    if isCurrentlySpeaking {
                                         LottieDozziView(
                                             currentAnimation: .constant(.reading),
                                             mood: .constant(.sleepy)
@@ -307,16 +367,16 @@ struct StoryView: View {
                                     
                                     Button(action: toggleSpeech) {
                                         Label(
-                                            speechSynthesizer.isSpeaking ? "Pause" : "Read Story",
-                                            systemImage: speechSynthesizer.isSpeaking ? "pause.fill" : "play.fill"
+                                            isCurrentlySpeaking ? "Pause" : buttonLabel,
+                                            systemImage: isCurrentlySpeaking ? "pause.fill" : "play.fill"
                                         )
                                         .frame(maxWidth: .infinity)
                                         .padding()
-                                        .background(Color.green.opacity(0.1))
-                                        .foregroundColor(.green)
+                                        .background(buttonBackgroundColor)
+                                        .foregroundColor(buttonForegroundColor)
                                         .cornerRadius(10)
                                     }
-                                    .disabled(storyGenerator.currentStory?.content == nil)
+                                    .disabled(storyGenerator.currentStory?.content == nil || (useCloudTTS && ttsService.isGenerating))
                                 }
                             }
 
@@ -887,7 +947,7 @@ struct StoryView: View {
                     HStack(spacing: 20) {
                         // Speech control with character
                         HStack(spacing: 12) {
-                            if speechSynthesizer.isSpeaking {
+                            if isCurrentlySpeaking {
                                 LottieDozziView(
                                     currentAnimation: .constant(.reading),
                                     mood: .constant(.sleepy)
@@ -901,14 +961,14 @@ struct StoryView: View {
                                 }
                             }) {
                                 Label(
-                                    speechSynthesizer.isSpeaking ? "Pause Reading" : "Read Story",
-                                    systemImage: speechSynthesizer.isSpeaking ? "pause.circle.fill" : "play.circle.fill"
+                                    isCurrentlySpeaking ? "Pause Reading" : (useCloudTTS ? "Read Story (Cloud)" : "Read Story (Local)"),
+                                    systemImage: isCurrentlySpeaking ? "pause.circle.fill" : "play.circle.fill"
                                 )
                                 .font(.callout.weight(.medium))
                                 .foregroundStyle(.white)
                             }
-                            .buttonStyle(LiquidGlassButtonStyle(color: .green, isPrimary: true))
-                            .disabled(storyGenerator.currentStory?.content == nil)
+                            .buttonStyle(LiquidGlassButtonStyle(color: useCloudTTS ? .blue : .green, isPrimary: true))
+                            .disabled(storyGenerator.currentStory?.content == nil || (useCloudTTS && ttsService.isGenerating))
                         }
                         
                         Button(action: {
@@ -987,12 +1047,108 @@ struct StoryView: View {
     }
 
     private func toggleSpeech() {
+        // Auto-use cloud TTS for users who have access (including free trial)
+        if subscriptionManager.canUseCloudTTS() {
+            toggleCloudTTS()
+        } else {
+            // Only users without any cloud access use local TTS
+            toggleLocalTTS()
+        }
+    }
+    
+    private func toggleCloudTTS() {
+        if isPlayingAudio {
+            // Pause/stop cloud audio playback
+            audioPlayer?.pause()
+            isPlayingAudio = false
+            stopWordHighlighting()
+        } else {
+            // Generate new audio using Firebase TTS
+            if let story = storyGenerator.currentStory {
+                isPreparingCloudAudio = true
+                
+                Task {
+                    do {
+                        print("☁️ Generating TTS with Google Cloud voices ($$)...")
+                        let cleanStoryText = stripMarkdown(from: story.content)
+                        
+                        // Use selected voice or age-appropriate default
+                        let selectedVoice: VoiceConfig? = {
+                            if !selectedCloudVoiceName.isEmpty {
+                                return VoiceConfig.allVoices.first { $0.name == selectedCloudVoiceName }
+                            }
+                            return nil
+                        }()
+                        
+                        let response = try await ttsService.synthesizeStory(
+                            story: cleanStoryText,
+                            childAge: getChildAge(),
+                            selectedVoice: selectedVoice
+                        )
+                        
+                        // Convert base64 to audio data and play
+                        if let data = Data(base64Encoded: response.audioContent) {
+                            audioData = data
+                            
+                            do {
+                                // Create and configure audio player
+                                audioPlayer = try AVAudioPlayer(data: data)
+                                audioPlayer?.prepareToPlay()
+                                
+                                // Set up audio session for playback
+                                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                                try AVAudioSession.sharedInstance().setActive(true)
+                                
+                                // Start playback
+                                audioPlayer?.play()
+                                isPlayingAudio = true
+                                isPreparingCloudAudio = false
+                                
+                                // Start simulated word highlighting for cloud TTS
+                                startWordHighlighting(for: cleanStoryText)
+                                
+                                print("✅ Cloud TTS playing - \(response.remaining) requests remaining")
+                            } catch {
+                                print("❌ Audio playback error: \(error)")
+                                isPlayingAudio = false
+                                isPreparingCloudAudio = false
+                            }
+                        }
+                    } catch {
+                        print("❌ Cloud TTS Error: \(error)")
+                        // Fallback to local TTS if Firebase fails
+                        print("🔄 Falling back to local TTS...")
+                        toggleLocalTTS()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func toggleLocalTTS() {
         if speechSynthesizer.isSpeaking {
             speechSynthesizer.pauseSpeaking()
         } else {
             if let story = storyGenerator.currentStory {
-                speechSynthesizer.speakStory(title: story.title, content: story.content, ssmlContent: story.ssmlContent, for: parameters.ageGroup)
+                print("📱 Using local iOS TTS (free - Samantha)")
+                let cleanStoryText = stripMarkdown(from: story.content)
+                // Simplified: just use plain content, no SSML complexity
+                speechSynthesizer.speakStory(
+                    title: story.title, 
+                    content: cleanStoryText, 
+                    ssmlContent: nil, // Simplified - no SSML for bedtime stories
+                    for: parameters.ageGroup
+                )
             }
+        }
+    }
+    
+    private func getChildAge() -> Int {
+        switch parameters.ageGroup {
+        case .toddler: return 3
+        case .preschool: return 5
+        case .earlyElementary: return 7
+        case .elementary: return 9
         }
     }
 
@@ -1008,8 +1164,22 @@ struct StoryView: View {
             storyIllustration: partialStory.storyIllustration
         )
 
-        libraryManager.saveStory(completeStory, parameters: parameters)
-        showingSaveAlert = true
+        Task {
+            do {
+                // Save to Firestore (cloud-synced across devices)
+                try await firestoreService.saveStory(completeStory, parameters: parameters)
+                
+                // Also save locally for offline access
+                libraryManager.saveStory(completeStory, parameters: parameters)
+                
+                showingSaveAlert = true
+            } catch {
+                print("❌ Failed to save story: \(error)")
+                // Fallback to local-only save
+                libraryManager.saveStory(completeStory, parameters: parameters)
+                showingSaveAlert = true
+            }
+        }
     }
 }
 
@@ -1082,6 +1252,97 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             )
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Helper Functions
+
+extension StoryView {
+    /// Strip markdown formatting from text for TTS to avoid reading asterisks, brackets, etc.
+    private func stripMarkdown(from text: String) -> String {
+        var cleanText = text
+        
+        // Remove bold/italic markers
+        cleanText = cleanText.replacingOccurrences(of: "**", with: "")
+        cleanText = cleanText.replacingOccurrences(of: "*", with: "")
+        cleanText = cleanText.replacingOccurrences(of: "_", with: "")
+        
+        // Remove headers
+        cleanText = cleanText.replacingOccurrences(of: "# ", with: "")
+        cleanText = cleanText.replacingOccurrences(of: "## ", with: "")
+        cleanText = cleanText.replacingOccurrences(of: "### ", with: "")
+        
+        // Remove links [text](url) -> text
+        let linkPattern = "\\[([^\\]]+)\\]\\([^\\)]+\\)"
+        cleanText = cleanText.replacingOccurrences(
+            of: linkPattern,
+            with: "$1",
+            options: .regularExpression
+        )
+        
+        // Remove code blocks and inline code
+        cleanText = cleanText.replacingOccurrences(of: "`", with: "")
+        
+        // Remove list markers
+        cleanText = cleanText.replacingOccurrences(of: "- ", with: "")
+        cleanText = cleanText.replacingOccurrences(of: "* ", with: "")
+        
+        // Clean up multiple spaces and newlines
+        cleanText = cleanText.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        cleanText = cleanText.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        return cleanText
+    }
+    
+    // MARK: - Word Highlighting for Cloud TTS
+    
+    /// Start simulated word highlighting to sync with cloud audio
+    private func startWordHighlighting(for text: String) {
+        storyWords = text.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+        currentWordIndex = 0
+        
+        // Estimate timing: average 150 words per minute for bedtime stories
+        let wordsPerSecond = 150.0 / 60.0 // ~2.5 words per second
+        let intervalPerWord = 1.0 / wordsPerSecond // ~0.4 seconds per word
+        
+        wordHighlightTimer = Timer.scheduledTimer(withTimeInterval: intervalPerWord, repeats: true) { _ in
+            self.advanceWordHighlight()
+        }
+    }
+    
+    /// Stop word highlighting timer
+    private func stopWordHighlighting() {
+        wordHighlightTimer?.invalidate()
+        wordHighlightTimer = nil
+        currentWordIndex = 0
+        
+        // Reset speech synthesizer highlighting state for consistency
+        speechSynthesizer.currentWordRange = nil
+        speechSynthesizer.speechProgress = 0.0
+    }
+    
+    /// Advance to next word in highlighting
+    private func advanceWordHighlight() {
+        guard currentWordIndex < storyWords.count else {
+            stopWordHighlighting()
+            return
+        }
+        
+        // Calculate approximate word range for highlighting
+        let wordsBeforeCurrent = storyWords.prefix(currentWordIndex)
+        let charactersBefore = wordsBeforeCurrent.joined(separator: " ").count + 
+                              (currentWordIndex > 0 ? 1 : 0) // Add space before current word
+        
+        let currentWord = storyWords[currentWordIndex]
+        let wordRange = NSRange(location: charactersBefore, length: currentWord.count)
+        
+        // Update speech synthesizer state for UI consistency
+        speechSynthesizer.currentWordRange = wordRange
+        speechSynthesizer.speechProgress = Double(currentWordIndex) / Double(storyWords.count)
+        speechSynthesizer.isSpeakingContent = true
+        
+        currentWordIndex += 1
     }
 }
 
