@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import FirebaseFunctions
 
 /// Manages subscription status and feature access
 @MainActor
@@ -25,6 +26,13 @@ class SubscriptionManager: ObservableObject {
         setupFirstLaunch()
         loadSubscriptionStatus()
         observeStoreUpdates()
+        
+        // Sync subscription status to Firebase on startup
+        Task {
+            // Wait a bit for store updates to complete
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            await syncSubscriptionStatusToFirebase()
+        }
     }
     
     // MARK: - Subscription Status Management
@@ -111,12 +119,23 @@ class SubscriptionManager: ObservableObject {
         if purchasedIDs.contains(StoreManager.unlimitedStoriesProductID) {
             subscriptionStatus = .unlimited
             saveSubscriptionStatus()
+            
+            // Sync to Firebase
+            Task {
+                await syncSubscriptionStatusToFirebase()
+            }
+            
             print("🎉 Unlimited stories activated!")
         } else if case .unlimited = subscriptionStatus {
             // Was unlimited but no longer purchased - reset to free
             print("⚠️ Unlimited purchase no longer found - resetting to free")
             resetToFreeAccount()
             saveSubscriptionStatus()
+            
+            // Sync to Firebase
+            Task {
+                await syncSubscriptionStatusToFirebase()
+            }
         }
     }
     
@@ -191,6 +210,49 @@ class SubscriptionManager: ObservableObject {
     /// Get the current store manager for direct access if needed
     var store: StoreManager {
         return storeManager
+    }
+    
+    // MARK: - Firebase Sync
+    
+    /// Sync subscription status to Firebase Firestore
+    private func syncSubscriptionStatusToFirebase() async {
+        do {
+            let functions = Functions.functions()
+            let syncFunction = functions.httpsCallable("syncSubscriptionStatus")
+            
+            let subscriptionStatusString = subscriptionStatus == .unlimited ? "unlimited" : "free"
+            
+            var requestData: [String: Any] = [
+                "subscriptionStatus": subscriptionStatusString
+            ]
+            
+            // Add purchase info if unlimited
+            if case .unlimited = subscriptionStatus {
+                requestData["purchaseInfo"] = [
+                    "productId": StoreManager.unlimitedStoriesProductID,
+                    "purchaseDate": Date().timeIntervalSince1970
+                ]
+            }
+            
+            let result = try await syncFunction.call(requestData)
+            
+            if let data = result.data as? [String: Any],
+               let success = data["success"] as? Bool,
+               success {
+                print("✅ Subscription status synced to Firebase: \(subscriptionStatusString)")
+            } else {
+                print("⚠️ Firebase sync responded but with unknown format")
+            }
+            
+        } catch {
+            print("❌ Failed to sync subscription status to Firebase: \(error)")
+            // Don't throw - this is a background sync operation
+        }
+    }
+    
+    /// Manually sync subscription status (useful for troubleshooting)
+    func forceSyncToFirebase() async {
+        await syncSubscriptionStatusToFirebase()
     }
 }
 

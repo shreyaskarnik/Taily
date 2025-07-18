@@ -26,11 +26,13 @@ class TTSService: ObservableObject {
     ///   - text: The text to convert to speech
     ///   - voice: Optional voice configuration
     ///   - audioConfig: Optional audio configuration
+    ///   - subscriptionStatus: Current subscription status for proper usage tracking
     /// - Returns: Base64 encoded audio data and format info
     func synthesizeSpeech(
         text: String,
         voice: VoiceConfig? = nil,
-        audioConfig: AudioConfig? = nil
+        audioConfig: AudioConfig? = nil,
+        subscriptionStatus: String? = nil
     ) async throws -> TTSResponse {
         guard !text.isEmpty else {
             throw TTSError.invalidInput("Text cannot be empty")
@@ -67,6 +69,10 @@ class TTSService: ObservableObject {
                 ]
             }
             
+            if let subscriptionStatus = subscriptionStatus {
+                requestData["subscriptionStatus"] = subscriptionStatus
+            }
+            
             print("🎤 Requesting TTS for \(text.count) characters...")
             
             // Call the secure Firebase Function
@@ -82,8 +88,14 @@ class TTSService: ObservableObject {
             }
             
             let remaining = data["remaining"] as? Int ?? 0
+            let responseSubscriptionStatus = data["subscriptionStatus"] as? String ?? "unknown"
             
-            print("✅ TTS successful - \(remaining) requests remaining this month")
+            // Provide better user feedback based on subscription status
+            if responseSubscriptionStatus == "unlimited" {
+                print("✅ TTS successful - unlimited stories available")
+            } else {
+                print("✅ TTS successful - \(remaining) stories remaining in trial")
+            }
             
             return TTSResponse(
                 audioContent: audioContent,
@@ -122,15 +134,17 @@ class TTSService: ObservableObject {
     ///   - story: The complete story content
     ///   - childAge: Child's age for appropriate voice selection
     ///   - selectedVoice: Optional custom voice selection (overrides age-based selection)
+    ///   - subscriptionStatus: Current subscription status for proper usage tracking
     /// - Returns: Audio data ready for playback
-    func synthesizeStory(story: String, childAge: Int = 5, selectedVoice: VoiceConfig? = nil) async throws -> TTSResponse {
+    func synthesizeStory(story: String, childAge: Int = 5, selectedVoice: VoiceConfig? = nil, subscriptionStatus: String? = nil) async throws -> TTSResponse {
         let voice = selectedVoice ?? VoiceConfig.ageAppropriate(for: childAge)
         let audioConfig = AudioConfig.bedtimeOptimized()
         
         return try await synthesizeSpeech(
             text: story,
             voice: voice,
-            audioConfig: audioConfig
+            audioConfig: audioConfig,
+            subscriptionStatus: subscriptionStatus
         )
     }
     

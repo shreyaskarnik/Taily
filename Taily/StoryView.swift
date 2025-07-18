@@ -1080,10 +1080,14 @@ struct StoryView: View {
                             return nil
                         }()
                         
+                        // Get subscription status for proper usage tracking
+                        let subscriptionStatus = subscriptionManager.subscriptionStatus == .unlimited ? "unlimited" : "free"
+                        
                         let response = try await ttsService.synthesizeStory(
                             story: cleanStoryText,
                             childAge: getChildAge(),
-                            selectedVoice: selectedVoice
+                            selectedVoice: selectedVoice,
+                            subscriptionStatus: subscriptionStatus
                         )
                         
                         // Convert base64 to audio data and play
