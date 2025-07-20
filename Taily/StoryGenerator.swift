@@ -6,38 +6,46 @@ import Foundation
 #endif
 
 #if canImport(FoundationModels)
+@available(iOS 26.0, *)
 @Generable
-#endif
-struct GeneratedStory: Codable {
-    #if canImport(FoundationModels)
+struct GeneratedStoryiOS26 {
     @Guide(description: "A creative, engaging title for the bedtime story that captures the main theme")
-    #endif
     let title: String
 
-    #if canImport(FoundationModels)
     @Guide(description: "A single emoji that represents the story's main theme or setting")
-    #endif
     let emoji: String
 
-    #if canImport(FoundationModels)
     @Guide(description: "The complete bedtime story content in PLAIN TEXT with NO markup or tags - this will be displayed to users in the app interface")
-    #endif
     let content: String
 
-    // Removed SSML complexity - keep bedtime stories simple and natural
-    let ssmlContent: String? = nil
-
-    #if canImport(FoundationModels)
     @Guide(description: "A companion illustration that captures the main scene or character from the story in a colorful, whimsical, child-friendly style")
-    #endif
     let storyIllustration: GenerableImage?
+}
 
-    init(title: String, emoji: String, content: String, ssmlContent: String? = nil, storyIllustration: GenerableImage? = nil) {
+// Unified GeneratedStory that works across iOS versions
+struct GeneratedStory: Codable {
+    let title: String
+    let emoji: String
+    let content: String
+    let ssmlContent: String? = nil
+    let storyIllustration: String? // Description string for cloud stories
+}
+#else
+// iOS 18+ version without FoundationModels
+struct GeneratedStory: Codable {
+    let title: String
+    let emoji: String
+    let content: String
+    let ssmlContent: String? = nil
+    let storyIllustration: String? // Description string for cloud stories
+}
+#endif
+
+extension GeneratedStory {
+    init(title: String, emoji: String, content: String, ssmlContent: String? = nil, storyIllustration: String? = nil) {
         self.title = title
         self.emoji = emoji
-        // Strip any SSML tags from content to ensure it's plain text
         self.content = Self.stripSSMLTags(from: content)
-        // ssmlContent removed for simplicity
         self.storyIllustration = storyIllustration
     }
 
@@ -78,22 +86,17 @@ struct GeneratedStory: Codable {
         title = try container.decode(String.self, forKey: .title)
         emoji = try container.decode(String.self, forKey: .emoji)
         let rawContent = try container.decode(String.self, forKey: .content)
-        // Strip any SSML tags that might have been saved in content
         content = Self.stripSSMLTags(from: rawContent)
-        // ssmlContent removed for simplicity
-        // storyIllustration may not exist in older saved stories - will be created later if needed
-        storyIllustration = nil
+        storyIllustration = try container.decodeIfPresent(String.self, forKey: .storyIllustrationDescription)
     }
 
-    // Custom encoding to handle GenerableImage
+    // Custom encoding 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(title, forKey: .title)
         try container.encode(emoji, forKey: .emoji)
         try container.encode(content, forKey: .content)
-        // ssmlContent removed for simplicity
-        // Encode the image description if available
-        try container.encodeIfPresent(storyIllustration?.imageDescription, forKey: .storyIllustrationDescription)
+        try container.encodeIfPresent(storyIllustration, forKey: .storyIllustrationDescription)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -236,31 +239,15 @@ enum StoryLength: String, CaseIterable, Codable {
 #if canImport(FoundationModels)
     @available(iOS 26.0, *)
     @MainActor
-    class StoryGenerator: ObservableObject {
+    class StoryGeneratoriOS26: ObservableObject {
         @Published var isGenerating = false
-        @Published var generatedStory: GeneratedStory.PartiallyGenerated?
+        @Published var generatedStory: GeneratedStory?
         @Published var savedStory: GeneratedStory?
         @Published var errorMessage: String?
 
         // Computed property to provide a consistent interface for UI
         var currentStory: GeneratedStory? {
-            // Return saved story if available, otherwise try to construct from partial generation
-            if let saved = savedStory {
-                return saved
-            }
-            
-            guard let partial = generatedStory,
-                  let title = partial.title,
-                  let emoji = partial.emoji,
-                  let content = partial.content else {
-                return nil
-            }
-            return GeneratedStory(
-                title: title,
-                emoji: emoji,
-                content: content,
-                storyIllustration: partial.storyIllustration
-            )
+            return savedStory ?? generatedStory
         }
 
         private let model = SystemLanguageModel.default
@@ -324,21 +311,26 @@ enum StoryLength: String, CaseIterable, Codable {
 
                 // Use streaming response for real-time updates
                 let stream = session!.streamResponse(
-                    generating: GeneratedStory.self,
+                    generating: GeneratedStoryiOS26.self,
                     options: GenerationOptions(sampling: .greedy),
                     includeSchemaInPrompt: false
                 ) {
                     prompt
                 }
 
-                // Process each partial update
+                // Process each partial update and convert to unified GeneratedStory
                 for try await partialStory in stream {
-                    #if canImport(FoundationModels)
-                    generatedStory = partialStory
-                    #else
-                    // Fallback for non-iOS 26 builds
-                    generatedStory = nil
-                    #endif
+                    if let title = partialStory.title,
+                       let emoji = partialStory.emoji,
+                       let content = partialStory.content {
+                        let story = GeneratedStory(
+                            title: title,
+                            emoji: emoji,
+                            content: content,
+                            storyIllustration: partialStory.storyIllustration?.imageDescription
+                        )
+                        generatedStory = story
+                    }
                 }
 
             } catch {
@@ -465,7 +457,6 @@ enum StoryLength: String, CaseIterable, Codable {
                 Story:
                 """
 
-
             return prompt
         }
 
@@ -512,21 +503,26 @@ enum StoryLength: String, CaseIterable, Codable {
 
                 // Use streaming response for real-time updates
                 let stream = session!.streamResponse(
-                    generating: GeneratedStory.self,
+                    generating: GeneratedStoryiOS26.self,
                     options: GenerationOptions(sampling: .greedy),
                     includeSchemaInPrompt: false
                 ) {
                     prompt
                 }
 
-                // Process each partial update
+                // Process each partial update and convert to unified GeneratedStory
                 for try await partialStory in stream {
-                    #if canImport(FoundationModels)
-                    generatedStory = partialStory
-                    #else
-                    // Fallback for non-iOS 26 builds
-                    generatedStory = nil
-                    #endif
+                    if let title = partialStory.title,
+                       let emoji = partialStory.emoji,
+                       let content = partialStory.content {
+                        let story = GeneratedStory(
+                            title: title,
+                            emoji: emoji,
+                            content: content,
+                            storyIllustration: partialStory.storyIllustration?.imageDescription
+                        )
+                        generatedStory = story
+                    }
                 }
 
             } catch {
@@ -539,30 +535,64 @@ enum StoryLength: String, CaseIterable, Codable {
     }
 #else
     // Fallback implementation when Foundation Models are not available
+    // Uses cloud-based story generation for iOS 18+ compatibility
     @MainActor
     class StoryGenerator: ObservableObject {
         @Published var isGenerating = false
         @Published var generatedStory: GeneratedStory?
         @Published var savedStory: GeneratedStory?
         @Published var errorMessage: String?
+        
+        private let cloudStoryService = CloudStoryService()
 
         // Computed property to provide a consistent interface for UI
         var currentStory: GeneratedStory? {
             return savedStory ?? generatedStory
         }
 
-        var isModelAvailable: Bool { false }
+        var isModelAvailable: Bool { 
+            // Cloud generation is available if user has network and valid auth
+            return true 
+        }
+        
         var modelAvailabilityReason: String {
-            "Foundation Models not available"
+            "Cloud story generation available"
         }
 
         func prewarm() {
-            // No-op for fallback
+            // No-op for cloud service
         }
 
         func generateStory(with parameters: StoryParameters) async {
+            guard let subscriptionManager = getSubscriptionManager() else {
+                errorMessage = "Subscription service not available"
+                return
+            }
+            
             isGenerating = true
-            errorMessage = "Foundation Models not available on this device"
+            errorMessage = nil
+            generatedStory = nil
+
+            do {
+                let response = try await cloudStoryService.generateStory(
+                    with: parameters,
+                    subscriptionManager: subscriptionManager
+                )
+                
+                // Update the story
+                generatedStory = response.story
+                
+                // Update subscription manager with new usage info
+                await updateSubscriptionManagerUsage(
+                    subscriptionManager: subscriptionManager,
+                    usage: response.usage
+                )
+                
+            } catch {
+                print("Cloud story generation error: \(error)")
+                errorMessage = "Failed to generate story. Please check your connection and try again."
+            }
+
             isGenerating = false
         }
 
@@ -570,9 +600,215 @@ enum StoryLength: String, CaseIterable, Codable {
             with parameters: StoryParameters,
             modification: String
         ) async {
-            isGenerating = true
-            errorMessage = "Foundation Models not available on this device"
-            isGenerating = false
+            // For now, regeneration creates a new story with modified parameters
+            // Could be enhanced to support actual story modification via cloud API
+            
+            // Add modification to custom notes
+            let modifiedParameters = StoryParameters(
+                childName: parameters.childName,
+                ageGroup: parameters.ageGroup,
+                gender: parameters.gender,
+                values: parameters.values,
+                themes: parameters.themes,
+                setting: parameters.setting,
+                tone: parameters.tone,
+                length: parameters.length,
+                customNotes: (parameters.customNotes ?? "") + " " + modification
+            )
+            
+            await generateStory(with: modifiedParameters)
+        }
+        
+        /// Get subscription manager from the app context
+        private func getSubscriptionManager() -> SubscriptionManager? {
+            // For now, create a new instance - could be improved with dependency injection
+            return SubscriptionManager()
+        }
+        
+        /// Update subscription manager with new usage information from cloud response
+        private func updateSubscriptionManagerUsage(
+            subscriptionManager: SubscriptionManager,
+            usage: CloudStoryUsage
+        ) async {
+            // Update local subscription status based on cloud response
+            switch usage.subscriptionStatus {
+            case "unlimited":
+                subscriptionManager.subscriptionStatus = .unlimited
+            case "free":
+                subscriptionManager.subscriptionStatus = .free(remaining: usage.remaining)
+            default:
+                // Keep current status if unknown
+                break
+            }
         }
     }
 #endif
+
+// MARK: - Unified StoryGenerator for all iOS versions
+
+@MainActor
+class StoryGenerator: ObservableObject {
+    @Published var isGenerating = false
+    @Published var generatedStory: GeneratedStory?
+    @Published var savedStory: GeneratedStory?
+    @Published var errorMessage: String?
+    
+    #if canImport(FoundationModels)
+    private var ios26Generator: Any?
+    #endif
+    private let cloudStoryService = CloudStoryService()
+
+    // Computed property to provide a consistent interface for UI
+    var currentStory: GeneratedStory? {
+        return savedStory ?? generatedStory
+    }
+
+    var isModelAvailable: Bool {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            if ios26Generator == nil {
+                ios26Generator = StoryGeneratoriOS26()
+            }
+            return (ios26Generator as? StoryGeneratoriOS26)?.isModelAvailable ?? true // Fallback to cloud
+        }
+        #endif
+        return true // Cloud generation is always available
+    }
+    
+    var modelAvailabilityReason: String {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            if ios26Generator == nil {
+                ios26Generator = StoryGeneratoriOS26()
+            }
+            return (ios26Generator as? StoryGeneratoriOS26)?.modelAvailabilityReason ?? "Cloud story generation available"
+        }
+        #endif
+        return "Cloud story generation available"
+    }
+
+    func prewarm() {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            if ios26Generator == nil {
+                ios26Generator = StoryGeneratoriOS26()
+            }
+            (ios26Generator as? StoryGeneratoriOS26)?.prewarm()
+        }
+        #endif
+    }
+
+    func generateStory(with parameters: StoryParameters) async {
+        isGenerating = true
+        errorMessage = nil
+        generatedStory = nil
+
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            if ios26Generator == nil {
+                ios26Generator = StoryGeneratoriOS26()
+            }
+            
+            let generator = ios26Generator as? StoryGeneratoriOS26
+            if generator?.isModelAvailable == true {
+                // Use on-device generation
+                await generator?.generateStory(with: parameters)
+                generatedStory = generator?.currentStory
+                errorMessage = generator?.errorMessage
+                isGenerating = false
+                return
+            }
+        }
+        #endif
+        
+        // Fallback to cloud generation
+        await generateStoryCloud(with: parameters)
+    }
+
+    func regenerateStory(with parameters: StoryParameters, modification: String) async {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            if ios26Generator == nil {
+                ios26Generator = StoryGeneratoriOS26()
+            }
+            
+            let generator = ios26Generator as? StoryGeneratoriOS26
+            if generator?.isModelAvailable == true {
+                // Use on-device regeneration
+                await generator?.regenerateStory(with: parameters, modification: modification)
+                generatedStory = generator?.currentStory
+                errorMessage = generator?.errorMessage
+                return
+            }
+        }
+        #endif
+        
+        // Fallback to cloud generation with modified parameters
+        let modifiedParameters = StoryParameters(
+            childName: parameters.childName,
+            ageGroup: parameters.ageGroup,
+            gender: parameters.gender,
+            values: parameters.values,
+            themes: parameters.themes,
+            setting: parameters.setting,
+            tone: parameters.tone,
+            length: parameters.length,
+            customNotes: (parameters.customNotes ?? "") + " " + modification
+        )
+        
+        await generateStoryCloud(with: modifiedParameters)
+    }
+    
+    private func generateStoryCloud(with parameters: StoryParameters) async {
+        guard let subscriptionManager = getSubscriptionManager() else {
+            errorMessage = "Subscription service not available"
+            isGenerating = false
+            return
+        }
+
+        do {
+            let response = try await cloudStoryService.generateStory(
+                with: parameters,
+                subscriptionManager: subscriptionManager
+            )
+            
+            // Update the story
+            generatedStory = response.story
+            
+            // Update subscription manager with new usage info
+            await updateSubscriptionManagerUsage(
+                subscriptionManager: subscriptionManager,
+                usage: response.usage
+            )
+            
+        } catch {
+            print("Cloud story generation error: \(error)")
+            errorMessage = "Failed to generate story. Please check your connection and try again."
+        }
+
+        isGenerating = false
+    }
+    
+    /// Get subscription manager from the app context
+    private func getSubscriptionManager() -> SubscriptionManager? {
+        // For now, create a new instance - could be improved with dependency injection
+        return SubscriptionManager()
+    }
+    
+    /// Update subscription manager with new usage information from cloud response
+    private func updateSubscriptionManagerUsage(
+        subscriptionManager: SubscriptionManager,
+        usage: CloudStoryUsage
+    ) async {
+        // Update local subscription status based on cloud response
+        switch usage.subscriptionStatus {
+        case "unlimited":
+            subscriptionManager.subscriptionStatus = .unlimited
+        case "free":
+            subscriptionManager.subscriptionStatus = .free(storiesRemaining: usage.remaining)
+        default:
+            // Keep current status if unknown
+            break
+        }
+    }
+}

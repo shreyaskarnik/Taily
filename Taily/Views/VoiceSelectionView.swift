@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import Combine
 
 struct VoiceSelectionView: View {
     @StateObject private var ttsService = TTSService()
@@ -7,7 +8,10 @@ struct VoiceSelectionView: View {
     @State private var previewingVoice: VoiceConfig?
     @State private var audioPlayer: AVAudioPlayer?
     @State private var isPlaying = false
+    @State private var isPaused = false
+    @State private var isLoadingPreview = false
     @AppStorage("selectedVoiceName") private var selectedVoiceName: String = VoiceConfig.warmMother.name ?? ""
+    @StateObject private var audioDelegate = AudioPlayerDelegate()
     
     let childAge: Int
     let onVoiceSelected: (VoiceConfig) -> Void
@@ -40,6 +44,7 @@ struct VoiceSelectionView: View {
                                 isSelected: selectedVoice.name == voice.name,
                                 isPreviewing: previewingVoice?.name == voice.name,
                                 isPlaying: isPlaying && previewingVoice?.name == voice.name,
+                                isLoadingPreview: isLoadingPreview && previewingVoice?.name == voice.name,
                                 isRecommended: voice.name == VoiceConfig.ageAppropriate(for: childAge).name,
                                 onSelect: {
                                     selectedVoice = voice
@@ -99,36 +104,54 @@ struct VoiceSelectionView: View {
     }
     
     private func previewVoice(_ voice: VoiceConfig) {
+        // If this voice is already playing, toggle pause/resume
+        if previewingVoice?.name == voice.name && audioPlayer != nil {
+            if isPlaying {
+                pausePreview()
+            } else {
+                resumePreview()
+            }
+            return
+        }
+        
+        // Start new preview
         stopPreview()
         previewingVoice = voice
+        isLoadingPreview = true
         
         // Use bundled voice samples instead of TTS API calls
         guard let sampleData = VoiceSampleManager.shared.getVoiceSample(for: voice) else {
             print("⚠️ No bundled sample available for \(voice.displayName)")
             previewingVoice = nil
+            isLoadingPreview = false
             return
         }
         
         do {
             audioPlayer = try AVAudioPlayer(data: sampleData)
+            audioPlayer?.delegate = audioDelegate
             audioPlayer?.prepareToPlay()
             
             // Set up audio session
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
             
+            // Set up completion handler for when audio finishes
+            audioDelegate.onCompletion = {
+                DispatchQueue.main.async {
+                    stopPreview()
+                }
+            }
+            
             // Play sample
             audioPlayer?.play()
             isPlaying = true
-            
-            // Auto-stop after audio finishes (samples are ~8 seconds)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
-                stopPreview()
-            }
+            isLoadingPreview = false
             
         } catch {
             print("❌ Audio playback error: \(error)")
             previewingVoice = nil
+            isLoadingPreview = false
         }
     }
     
@@ -136,7 +159,32 @@ struct VoiceSelectionView: View {
         audioPlayer?.stop()
         audioPlayer = nil
         isPlaying = false
+        isPaused = false
         previewingVoice = nil
+        isLoadingPreview = false
+    }
+    
+    private func pausePreview() {
+        audioPlayer?.pause()
+        isPlaying = false
+        isPaused = true
+    }
+    
+    private func resumePreview() {
+        audioPlayer?.play()
+        isPlaying = true
+        isPaused = false
+    }
+    
+    private func getPlayButtonIcon() -> String {
+        if previewingVoice != nil && audioPlayer != nil {
+            if isPlaying {
+                return "pause.circle.fill"
+            } else if isPaused {
+                return "play.circle.fill"
+            }
+        }
+        return "play.circle.fill"
     }
 }
 
@@ -145,9 +193,19 @@ struct VoiceOptionCard: View {
     let isSelected: Bool
     let isPreviewing: Bool
     let isPlaying: Bool
+    let isLoadingPreview: Bool
     let isRecommended: Bool
     let onSelect: () -> Void
     let onPreview: () -> Void
+    
+    private var playButtonIcon: String {
+        if isPreviewing && isPlaying {
+            return "pause.circle.fill"
+        } else if isPreviewing && !isPlaying && isLoadingPreview == false {
+            return "play.circle.fill"
+        }
+        return "play.circle.fill"
+    }
     
     var body: some View {
         HStack(spacing: 16) {
@@ -183,11 +241,20 @@ struct VoiceOptionCard: View {
             
             VStack(spacing: 8) {
                 Button(action: onPreview) {
-                    Image(systemName: isPlaying ? "stop.circle.fill" : "play.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.blue)
+                    Group {
+                        if isLoadingPreview {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.blue)
+                        } else {
+                            Image(systemName: playButtonIcon)
+                                .font(.title2)
+                        }
+                    }
+                    .foregroundColor(.blue)
+                    .frame(width: 28, height: 28)
                 }
-                .disabled(isPreviewing && !isPlaying)
+                .disabled(isLoadingPreview)
                 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
@@ -222,6 +289,23 @@ struct PrimaryButtonStyle: ButtonStyle {
             )
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Audio Player Delegate
+
+class AudioPlayerDelegate: NSObject, ObservableObject, AVAudioPlayerDelegate {
+    var onCompletion: (() -> Void)?
+    
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        onCompletion?()
+    }
+    
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        if let error = error {
+            print("❌ Audio decode error: \(error)")
+        }
+        onCompletion?()
     }
 }
 

@@ -220,58 +220,31 @@ struct StoryView: View {
                                     .contentTransition(.opacity)
                                 }
 
-                                // Story illustration with loading state
-                                if let illustration = story.storyIllustration {
-                                    VStack {
-                                        if let image = illustration.image {
-                                            #if canImport(UIKit)
-                                            Image(uiImage: UIImage(cgImage: image))
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(maxWidth: dynamicImageMaxWidth, maxHeight: dynamicImageHeight)
-                                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                                .accessibilityLabel(illustration.imageDescription)
-                                                .transition(.opacity.combined(with: .scale))
-                                            #elseif canImport(AppKit)
-                                            Image(nsImage: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(maxWidth: dynamicImageMaxWidth, maxHeight: dynamicImageHeight)
-                                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-                                                .accessibilityLabel(illustration.imageDescription)
-                                                .transition(.opacity.combined(with: .scale))
-                                            #endif
-                                        } else if illustration.isResponding {
-                                            IllustrationLoadingView()
-                                            .frame(maxWidth: dynamicImageMaxWidth, maxHeight: dynamicImageHeight)
-                                            .background(Color(.systemGray6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                                        } else {
-                                            // Show custom storybook placeholder when image generation isn't available
-                                            VStack(spacing: 12) {
-                                                Image("StoryBookPlaceholder")
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(maxWidth: dynamicImageMaxWidth * 0.6, maxHeight: dynamicImageHeight * 0.6)
-                                                VStack(spacing: 4) {
-                                                    Text("Story Illustration")
-                                                        .font(.caption)
-                                                        .fontWeight(.medium)
-                                                        .foregroundColor(.secondary)
-                                                    Text(illustration.imageDescription)
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
-                                                        .multilineTextAlignment(.center)
-                                                        .lineLimit(2)
-                                                }
-                                            }
-                                            .frame(maxWidth: dynamicImageMaxWidth, maxHeight: dynamicImageHeight)
-                                            .background(Color(.systemGray6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                                // Story illustration placeholder (cloud stories include description only)
+                                if let illustrationDescription = story.storyIllustration, !illustrationDescription.isEmpty {
+                                    VStack(spacing: 12) {
+                                        Image(systemName: "photo.artframe")
+                                            .font(.system(size: 40))
+                                            .foregroundColor(.secondary)
+                                        
+                                        VStack(spacing: 4) {
+                                            Text("Story Illustration")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.secondary)
+                                            Text(illustrationDescription)
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.center)
+                                                .lineLimit(3)
+                                                .padding(.horizontal, 16)
                                         }
                                     }
+                                    .frame(maxWidth: dynamicImageMaxWidth, maxHeight: dynamicImageHeight)
+                                    .background(Color(.systemGray6))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                                    .accessibilityLabel("Story illustration: \(illustrationDescription)")
                                     .padding(.horizontal)
                                 } else if storyGenerator.isGenerating {
                                     IllustrationLoadingView()
@@ -529,23 +502,29 @@ struct StoryView: View {
                 // Right side - Illustration (40% of width)
                 VStack {
                     if let story = storyGenerator.currentStory {
-                        if let illustration = story.storyIllustration {
-                            #if canImport(UIKit)
-                            if let cgImage = illustration.image {
-                                Image(uiImage: UIImage(cgImage: cgImage))
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .background(Color(.systemGray6))
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .accessibilityLabel(illustration.imageDescription)
+                        if let illustrationDescription = story.storyIllustration, !illustrationDescription.isEmpty {
+                            // iPad illustration placeholder with description
+                            VStack(spacing: 16) {
+                                Image(systemName: "photo.artframe")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.secondary)
+                                
+                                VStack(spacing: 8) {
+                                    Text("Story Illustration")
+                                        .font(.headline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.secondary)
+                                    Text(illustrationDescription)
+                                        .font(.body)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 20)
+                                }
                             }
-                            #endif
-                        } else if story.storyIllustration?.isResponding == true {
-                            IllustrationLoadingView()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(Color(.systemGray6))
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .accessibilityLabel("Story illustration: \(illustrationDescription)")
                         } else if storyGenerator.isGenerating {
                             IllustrationLoadingView()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -707,27 +686,51 @@ struct StoryView: View {
                                     Spacer()
                                 }
                                 
-                                if let illustration = story.storyIllustration {
-                                    #if canImport(UIKit)
-                                    if let cgImage = illustration.image {
-                                        Image(uiImage: UIImage(cgImage: cgImage))
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(maxHeight: 400)
-                                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                                    .fill(.regularMaterial)
-                                                    .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
-                                            )
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                                    .stroke(.white.opacity(0.2), lineWidth: 1)
-                                            )
-                                            .accessibilityLabel(illustration.imageDescription)
+                                if let illustrationDescription = story.storyIllustration, !illustrationDescription.isEmpty {
+                                    // Polished illustration placeholder with description
+                                    VStack(spacing: 20) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(.white.opacity(0.9))
+                                                .frame(width: 120, height: 120)
+                                                .shadow(color: .purple.opacity(0.2), radius: 15, x: 0, y: 8)
+                                            
+                                            Image(systemName: "photo.artframe.circle")
+                                                .font(.system(size: 50, weight: .medium))
+                                                .foregroundStyle(
+                                                    LinearGradient(
+                                                        colors: [.purple, .blue],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                        }
+                                        
+                                        VStack(spacing: 8) {
+                                            Text("Story Illustration")
+                                                .font(.title2.weight(.bold))
+                                                .foregroundStyle(.primary)
+                                            
+                                            Text(illustrationDescription)
+                                                .font(.body)
+                                                .foregroundStyle(.secondary)
+                                                .multilineTextAlignment(.center)
+                                                .padding(.horizontal, 24)
+                                        }
                                     }
-                                    #endif
-                                } else if story.storyIllustration?.isResponding == true {
+                                    .frame(maxHeight: 400)
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                            .fill(.regularMaterial)
+                                            .shadow(color: .black.opacity(0.1), radius: 15, x: 0, y: 8)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                                    )
+                                    .accessibilityLabel("Story illustration: \(illustrationDescription)")
+                                } else if storyGenerator.isGenerating {
                                     VStack(spacing: 20) {
                                         IllustrationLoadingView()
                                             .frame(width: 80, height: 80)
@@ -960,10 +963,19 @@ struct StoryView: View {
                                     toggleSpeech()
                                 }
                             }) {
-                                Label(
-                                    isCurrentlySpeaking ? "Pause Reading" : (useCloudTTS ? "Read Story (Cloud)" : "Read Story (Local)"),
-                                    systemImage: isCurrentlySpeaking ? "pause.circle.fill" : "play.circle.fill"
-                                )
+                                HStack {
+                                    if useCloudTTS && ttsService.isGenerating {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                            .tint(.white)
+                                        Text("Generating Audio...")
+                                    } else {
+                                        Label(
+                                            isCurrentlySpeaking ? "Pause Reading" : (useCloudTTS ? "Read Story" : "Read Story"),
+                                            systemImage: isCurrentlySpeaking ? "pause.circle.fill" : "play.circle.fill"
+                                        )
+                                    }
+                                }
                                 .font(.callout.weight(.medium))
                                 .foregroundStyle(.white)
                             }

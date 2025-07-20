@@ -1,6 +1,8 @@
 import Foundation
 import Combine
 import FirebaseFunctions
+import FirebaseAuth
+import FirebaseAppCheck
 
 /// Manages subscription status and feature access
 @MainActor

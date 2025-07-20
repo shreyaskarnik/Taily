@@ -459,6 +459,13 @@ struct SettingsView: View {
                     
                     Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
                     Link("Terms of Service", destination: URL(string: "https://example.com/terms")!)
+                    
+                    #if DEBUG
+                    NavigationLink("Generate Voice Samples") {
+                        VoiceSampleGenerator()
+                    }
+                    .foregroundColor(.orange)
+                    #endif
                 }
             }
             .navigationTitle("Settings")

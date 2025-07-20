@@ -21,6 +21,13 @@ class TTSService: ObservableObject {
         #endif
     }
     
+    /// Check if user can make TTS requests (avoids wasted API calls)
+    /// - Parameter subscriptionManager: The subscription manager to check limits
+    /// - Returns: True if user can make TTS requests
+    func canUseTTS(subscriptionManager: SubscriptionManager) -> Bool {
+        return subscriptionManager.canCreateStory()
+    }
+    
     /// Generate speech audio from text using Firebase Functions with App Check security
     /// - Parameters:
     ///   - text: The text to convert to speech
@@ -32,7 +39,8 @@ class TTSService: ObservableObject {
         text: String,
         voice: VoiceConfig? = nil,
         audioConfig: AudioConfig? = nil,
-        subscriptionStatus: String? = nil
+        subscriptionStatus: String? = nil,
+        isVoiceSample: Bool = false
     ) async throws -> TTSResponse {
         guard !text.isEmpty else {
             throw TTSError.invalidInput("Text cannot be empty")
@@ -73,10 +81,13 @@ class TTSService: ObservableObject {
                 requestData["subscriptionStatus"] = subscriptionStatus
             }
             
+            if isVoiceSample {
+                requestData["isVoiceSample"] = true
+            }
+            
             print("🎤 Requesting TTS for \(text.count) characters...")
             
-            // Call the secure Firebase Function
-            // App Check and Firebase Auth are automatically handled
+            // Call the properly configured v2 callable function
             let callable = functions.httpsCallable("synthesizeSpeechCallable")
             let result = try await callable.call(requestData)
             
@@ -158,7 +169,8 @@ class TTSService: ObservableObject {
         return try await synthesizeSpeech(
             text: sampleText,
             voice: voice,
-            audioConfig: audioConfig
+            audioConfig: audioConfig,
+            isVoiceSample: true
         )
     }
 }
