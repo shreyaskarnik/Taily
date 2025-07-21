@@ -705,12 +705,3 @@ class StoryGenerator: ObservableObject {
         }
     }
 }
-
-
-// MARK: - Extensions
-
-extension StoryParameters {
-    var hasCustomNotes: Bool {
-        return customNotes != nil && !customNotes!.isEmpty
-    }
-}
