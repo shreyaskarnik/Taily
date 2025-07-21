@@ -26,18 +26,9 @@ struct DozziApp: App {
         let providerFactory = AppCheckDebugProviderFactory()
         AppCheck.setAppCheckProviderFactory(providerFactory)
         #else
-        // For production builds, choose your real provider:
-        // If your app primarily targets iOS 14+ devices that support App Attest,
-        // this is the strongest option for device attestation.
-        if #available(iOS 14.0, *) {
-            let providerFactory = AppAttestProviderFactory()
-            AppCheck.setProviderFactory(providerFactory)
-        } else {
-            // For older iOS versions or if you prefer DeviceCheck for broader compatibility.
-            // DeviceCheck provides a good level of protection.
-            let providerFactory = DeviceCheckProviderFactory()
-            AppCheck.setProviderFactory(providerFactory)
-        }
+        // For production builds, use DeviceCheck provider for broader compatibility
+        let providerFactory = DeviceCheckProviderFactory()
+        AppCheck.setAppCheckProviderFactory(providerFactory)
         #endif
 
         // Configure Firebase

@@ -534,114 +534,7 @@ enum StoryLength: String, CaseIterable, Codable {
         }
     }
 #else
-    // Fallback implementation when Foundation Models are not available
-    // Uses cloud-based story generation for iOS 18+ compatibility
-    @MainActor
-    class StoryGenerator: ObservableObject {
-        @Published var isGenerating = false
-        @Published var generatedStory: GeneratedStory?
-        @Published var savedStory: GeneratedStory?
-        @Published var errorMessage: String?
-        
-        private let cloudStoryService = CloudStoryService()
-
-        // Computed property to provide a consistent interface for UI
-        var currentStory: GeneratedStory? {
-            return savedStory ?? generatedStory
-        }
-
-        var isModelAvailable: Bool { 
-            // Cloud generation is available if user has network and valid auth
-            return true 
-        }
-        
-        var modelAvailabilityReason: String {
-            "Cloud story generation available"
-        }
-
-        func prewarm() {
-            // No-op for cloud service
-        }
-
-        func generateStory(with parameters: StoryParameters) async {
-            guard let subscriptionManager = getSubscriptionManager() else {
-                errorMessage = "Subscription service not available"
-                return
-            }
-            
-            isGenerating = true
-            errorMessage = nil
-            generatedStory = nil
-
-            do {
-                let response = try await cloudStoryService.generateStory(
-                    with: parameters,
-                    subscriptionManager: subscriptionManager
-                )
-                
-                // Update the story
-                generatedStory = response.story
-                
-                // Update subscription manager with new usage info
-                await updateSubscriptionManagerUsage(
-                    subscriptionManager: subscriptionManager,
-                    usage: response.usage
-                )
-                
-            } catch {
-                print("Cloud story generation error: \(error)")
-                errorMessage = "Failed to generate story. Please check your connection and try again."
-            }
-
-            isGenerating = false
-        }
-
-        func regenerateStory(
-            with parameters: StoryParameters,
-            modification: String
-        ) async {
-            // For now, regeneration creates a new story with modified parameters
-            // Could be enhanced to support actual story modification via cloud API
-            
-            // Add modification to custom notes
-            let modifiedParameters = StoryParameters(
-                childName: parameters.childName,
-                ageGroup: parameters.ageGroup,
-                gender: parameters.gender,
-                values: parameters.values,
-                themes: parameters.themes,
-                setting: parameters.setting,
-                tone: parameters.tone,
-                length: parameters.length,
-                customNotes: (parameters.customNotes ?? "") + " " + modification
-            )
-            
-            await generateStory(with: modifiedParameters)
-        }
-        
-        /// Get subscription manager from the app context
-        private func getSubscriptionManager() -> SubscriptionManager? {
-            // For now, create a new instance - could be improved with dependency injection
-            return SubscriptionManager()
-        }
-        
-        /// Update subscription manager with new usage information from cloud response
-        private func updateSubscriptionManagerUsage(
-            subscriptionManager: SubscriptionManager,
-            usage: CloudStoryUsage
-        ) async {
-            // Update local subscription status based on cloud response
-            switch usage.subscriptionStatus {
-            case "unlimited":
-                subscriptionManager.subscriptionStatus = .unlimited
-            case "free":
-                subscriptionManager.subscriptionStatus = .free(remaining: usage.remaining)
-            default:
-                // Keep current status if unknown
-                break
-            }
-        }
-    }
+    // Note: StoryGenerator is now unified and defined below to work on all iOS versions
 #endif
 
 // MARK: - Unified StoryGenerator for all iOS versions
@@ -810,5 +703,14 @@ class StoryGenerator: ObservableObject {
             // Keep current status if unknown
             break
         }
+    }
+}
+
+
+// MARK: - Extensions
+
+extension StoryParameters {
+    var hasCustomNotes: Bool {
+        return customNotes != nil && !customNotes!.isEmpty
     }
 }
